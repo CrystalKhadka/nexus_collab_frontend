@@ -14,7 +14,7 @@ const LandingPage = () => {
 
   return (
     <div
-      className='min-h-screen flex flex-col font-sans bg-gradient-to-br from-gray-900 to-gray-800 bg-[#828282]'
+      className='min-h-screen flex flex-col font-sans bg-gradient-to-br from-gray-900 to-gray-800 bg-gray-900 overflow-hidden fixed'
       style={{
         fontFamily: 'Satoshi',
       }}>
@@ -22,12 +22,12 @@ const LandingPage = () => {
       <motion.nav
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className='w-full backdrop-blur-md bg-black/20 sticky top-0 z-50'>
-        <div className='container mx-auto px-4 py-4 flex justify-between items-center'>
+        className='w-full backdrop-blur-md sticky top-0 z-50 min-h-10'>
+        <div className='container mx-auto px-4 py-3 flex justify-between items-center'>
           <motion.img
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className='h-8 md:h-10'
+            className='h-6 md:h-8'
             alt='Nexus'
             src='images/logo1.png'
           />
@@ -35,8 +35,8 @@ const LandingPage = () => {
       </motion.nav>
 
       {/* Hero Section */}
-      <main className='flex-1 flex items-center'>
-        <div className='container mx-auto'>
+      <main className='flex-1 flex items-center bg-gray-800/50 '>
+        <div className='container mx-auto '>
           <div className='grid lg:grid-cols-2 gap-8 items-center'>
             {/* Logo Side */}
             <motion.div
@@ -68,26 +68,29 @@ const LandingPage = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className=' text-center lg:text-left'>
-              <h1 className='font-bold text-white bg-clip-text bg-gradient-to-r from-white to-gray-400 text-4xl md:text-4xl xl:text-5xl tracking-tight'>
+              className='text-center lg:text-left'>
+              <h1 className='font-bold text-white bg-clip-text bg-gradient-to-r from-white to-gray-400 text-3xl md:text-3xl xl:text-4xl tracking-tight'>
                 Nexus Collaboration
               </h1>
 
-              <div className='space-y-6'>
+              {/* Highlighted Features Section */}
+              <div className='space-y-4 mt-6 p-6 bg-white/5 rounded-xl backdrop-blur-sm border border-white/10'>
                 {features.map((feature, index) => (
                   <motion.div
                     key={index}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.2 }}
-                    className='flex items-center gap-4 text-xl md:text-2xl'>
-                    <feature.icon className={`${feature.color} w-8 h-8`} />
-                    <span className='text-white/90'>{feature.text}</span>
+                    className='flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors'>
+                    <feature.icon className={`${feature.color} w-6 h-6`} />
+                    <span className='text-white/90 text-base md:text-lg'>
+                      {feature.text}
+                    </span>
                   </motion.div>
                 ))}
               </div>
 
-              <div className='space-y-3 pt-8'>
+              <div className='space-y-3 pt-6 flex flex-col items-center justify-center'>
                 <motion.button
                   onHoverStart={() => setIsHovered(true)}
                   onHoverEnd={() => setIsHovered(false)}
@@ -96,9 +99,10 @@ const LandingPage = () => {
                   style={{
                     backgroundColor: '#404040',
                   }}
-                  className={`group relative w-full md:max-w-md px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl text-xl md:text-2xl text-white font-medium overflow-hidden ${
+                  className={`group relative w-full md:max-w-md px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl text-lg md:text-xl text-white font-medium overflow-hidden ${
                     isHovered ? 'shadow-[0px_11px_10px_#7bff00]' : ''
-                  }`}>
+                  }`}
+                  onClick={() => (window.location.href = '/register')}>
                   <motion.div
                     className='absolute inset-0 bg-gradient-to-r from-emerald-600 to-green-500'
                     initial={{ x: '100%' }}
@@ -107,14 +111,14 @@ const LandingPage = () => {
                   />
                   <span className='relative flex items-center justify-center gap-2'>
                     Get Started
-                    <ArrowRight className='w-5 h-5 group-hover:translate-x-1 transition-transform' />
+                    <ArrowRight className='w-4 h-4 group-hover:translate-x-1 transition-transform' />
                   </span>
                 </motion.button>
 
-                <p className='text-white/80 text-center w-9/12'>
+                <p className='text-white/80 text-sm'>
                   Already have an account?{' '}
                   <a
-                    href='#'
+                    href='/login'
                     className='font-medium text-green-400 hover:text-green-300 underline transition-colors'>
                     Sign in
                   </a>

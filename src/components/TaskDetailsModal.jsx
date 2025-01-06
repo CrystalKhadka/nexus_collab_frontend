@@ -1,290 +1,465 @@
-import { Modal } from 'antd';
 import {
-  ArrowLeftRight,
-  Check,
-  ChevronDown,
-  Eye,
-  Link2,
-  ListTodo,
-  LogOut,
-  Plus,
-  Tag,
-  Trash2,
-  User2,
-  X,
-} from 'lucide-react';
+  AttachFile,
+  CalendarToday as Calendar,
+  Description,
+  LocalOffer as Labels,
+  ExitToApp as Leave,
+  ViewList as ListIcon,
+  Groups as Members,
+  Flag as Priority,
+  CheckBox as Requirements,
+  Delete as Trash,
+  Close as X,
+} from '@mui/icons-material';
+import {
+  Box,
+  Button,
+  Chip,
+  Dialog,
+  IconButton,
+  LinearProgress,
+  Menu,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
+  styled,
+} from '@mui/material';
 import React, { useEffect, useState } from 'react';
 
-const TaskDetailsModal = ({
-  isOpen,
+const StyledDialog = styled(Dialog)(({ theme }) => ({
+  '& .MuiDialog-paper': {
+    backgroundColor: 'rgb(17, 24, 39)',
+    maxWidth: '90vw',
+    width: '90vw',
+    height: '90vh',
+    margin: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+}));
+
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  '& .MuiInputBase-root': {
+    color: 'rgb(209, 213, 219)',
+    backgroundColor: 'rgba(31, 41, 55, 0.5)',
+    borderRadius: theme.shape.borderRadius,
+    '&:hover': {
+      backgroundColor: 'rgba(31, 41, 55, 0.7)',
+    },
+  },
+  '& .MuiOutlinedInput-notchedOutline': {
+    border: 'none',
+  },
+}));
+
+const StyledSelect = styled(Select)(({ theme }) => ({
+  '& .MuiSelect-select': {
+    color: 'rgb(209, 213, 219)',
+    backgroundColor: 'rgba(31, 41, 55, 0.5)',
+    '&:hover': {
+      backgroundColor: 'rgba(31, 41, 55, 0.7)',
+    },
+  },
+  '& .MuiOutlinedInput-notchedOutline': {
+    border: 'none',
+  },
+}));
+
+const TaskDetailsDialog = ({
+  open,
   onClose,
-  task,
-  listTitle,
-  onUpdateTask,
-  onDeleteTask,
-  onMoveTask,
-  lists,
+  selectedTask,
+  handleNameChange,
 }) => {
-  const [description, setDescription] = useState('');
-  const [requirements, setRequirements] = useState([]);
-  const [showMoveOptions, setShowMoveOptions] = useState(false);
-  const [attachments, setAttachments] = useState([]);
+  const [listMenuAnchor, setListMenuAnchor] = useState(null);
+
+  const [task, setTask] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const [newDescription, setNewDescription] = useState(
+    selectedTask?.description
+  );
+  const [newName, setNewName] = useState(selectedTask?.name);
+  const [changingName, setChangingName] = useState(false);
 
   useEffect(() => {
-    if (task) {
-      setDescription(task.description || '');
-      setRequirements(task.requirements || []);
-      setAttachments(task.attachments || []);
-    }
-  }, [task]);
+    if (!selectedTask) return;
 
-  const calculateProgress = () => {
-    if (!requirements.length) return 0;
-    const completed = requirements.filter((req) => req.completed).length;
-    return Math.round((completed / requirements.length) * 100);
+    setTask(selectedTask);
+    console.log(selectedTask);
+  }, [selectedTask]);
+
+  const formatDate = (date) => {
+    if (!date) return 'Not set';
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const getPriorityColor = (priority) => {
+    const colors = {
+      low: '#3B82F6', // blue-500
+      medium: '#F59E0B', // yellow-500
+      high: '#EF4444', // red-500
+    };
+    return colors[priority] || colors.low;
   };
 
   return (
-    <Modal
-      open={isOpen}
-      onCancel={onClose}
-      footer={null}
-      width='90vw'
-      centered
-      closeIcon={
-        <X className='text-gray-400 hover:text-white transition-colors' />
-      }
-      className='task-modal max-w-6xl'>
-      <div className='bg-slate-800 rounded-xl h-[90vh] flex flex-col overflow-hidden'>
-        {/* Header with fixed height */}
-        <div className='flex items-center justify-between p-4 border-b border-slate-700'>
-          <div className='flex items-center gap-3'>
-            <ListTodo className='w-6 h-6 text-blue-400' />
-            <div>
-              <h2 className='text-xl font-medium text-slate-100'>
-                Task {task?.id}
-              </h2>
-              <div className='flex items-center gap-2'>
-                <span className='text-slate-400'>in list</span>
-                <button className='px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center gap-2'>
-                  <span className='text-slate-100'>{listTitle}</span>
-                  <ChevronDown className='w-4 h-4' />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+    <StyledDialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth='lg'>
+      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
+        <Box
+          sx={{
+            p: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid rgba(75, 85, 99, 0.5)',
+          }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <ListIcon sx={{ color: 'rgb(96, 165, 250)' }} />
+            <Box>
+              <div className='flex items-center'>
+                <StyledTextField
+                  variant='standard'
+                  defaultValue={selectedTask?.name}
+                  InputProps={{
+                    disableUnderline: true,
+                    style: { fontSize: '1.25rem', fontWeight: 500 },
+                  }}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onClick={() => {
+                    setChangingName(true);
+                  }}
+                />
+                {changingName && (
+                  // Ok Field
+                  <Button
+                    onClick={() => {
+                      setChangingName(false);
+                      handleNameChange(newName, selectedTask?._id);
+                    }}>
+                    OK
+                  </Button>
+                )}
 
-        {/* Main content area with scrolling */}
-        <div className='flex-1 overflow-hidden flex'>
-          {/* Left panel - scrollable */}
-          <div className='flex-1 overflow-y-auto p-4 space-y-6'>
+                {changingName && (
+                  // Cancel Field
+                  <Button
+                    onClick={() => {
+                      setChangingName(true);
+                      setNewName(selectedTask?.name);
+                    }}>
+                    Cancel
+                  </Button>
+                )}
+
+                {!changingName && (
+                  // Edit Field
+                  <Button
+                    onClick={() => {
+                      setChangingName(true);
+                      setNewName(selectedTask?.name);
+                    }}>
+                    Edit
+                  </Button>
+                )}
+              </div>
+              <Box
+                sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                <Typography
+                  variant='body2'
+                  sx={{ color: 'rgb(156, 163, 175)' }}>
+                  in list
+                </Typography>
+                <Button
+                  onClick={(e) => setListMenuAnchor(e.currentTarget)}
+                  sx={{
+                    backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                    color: 'white',
+                    '&:hover': {
+                      backgroundColor: 'rgba(31, 41, 55, 0.7)',
+                    },
+                  }}>
+                  {selectedTask?.status || 'pending'}
+                </Button>
+                <Menu
+                  anchorEl={listMenuAnchor}
+                  open={Boolean(listMenuAnchor)}
+                  onClose={() => setListMenuAnchor(null)}>
+                  <MenuItem>pending</MenuItem>
+                  <MenuItem>in-progress</MenuItem>
+                  <MenuItem>completed</MenuItem>
+                </Menu>
+              </Box>
+            </Box>
+          </Box>
+          <IconButton
+            onClick={onClose}
+            sx={{ color: 'rgb(156, 163, 175)' }}>
+            <X />
+          </IconButton>
+        </Box>
+
+        {/* Main Content */}
+        <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          {/* Left Panel */}
+          <Box sx={{ flex: 1, p: 3, overflowY: 'auto' }}>
             {/* Quick Actions */}
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
-              <div className='bg-slate-700/50 p-4 rounded-xl'>
-                <span className='text-slate-300 block mb-3'>Members</span>
-                <div className='flex items-center gap-2'>
-                  <div className='w-10 h-10 bg-slate-600 rounded-lg' />
-                  <button className='w-10 h-10 bg-slate-600 hover:bg-slate-500 rounded-lg flex items-center justify-center'>
-                    <Plus className='w-5 h-5 text-slate-300' />
-                  </button>
-                </div>
-              </div>
+            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+              <Button
+                startIcon={<Members />}
+                sx={{
+                  backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                  color: 'white',
+                  '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
+                }}>
+                Members
+                {selectedTask?.taskMembers?.length || 0}
+              </Button>
+              <Button
+                startIcon={<Labels />}
+                sx={{
+                  backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                  color: 'white',
+                  '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
+                }}>
+                Labels ({selectedTask?.taskLabel?.length || 0})
+              </Button>
+              <Button
+                startIcon={<Priority />}
+                sx={{
+                  backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                  color: getPriorityColor(selectedTask?.priority),
+                  '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
+                }}>
+                {selectedTask?.priority || 'low'}
+              </Button>
+            </Box>
 
-              <div className='bg-slate-700/50 p-4 rounded-xl'>
-                <span className='text-slate-300 block mb-3'>Labels</span>
-                <div className='flex items-center gap-2'>
-                  <div className='w-10 h-10 bg-yellow-400 rounded-lg' />
-                  <button className='w-10 h-10 bg-slate-600 hover:bg-slate-500 rounded-lg flex items-center justify-center'>
-                    <Plus className='w-5 h-5 text-slate-300' />
-                  </button>
-                </div>
-              </div>
-
-              <div className='bg-slate-700/50 p-4 rounded-xl'>
-                <span className='text-slate-300 block mb-3'>Notifications</span>
-                <button className='w-full py-2 bg-slate-600 hover:bg-slate-500 rounded-xl flex items-center justify-center gap-2'>
-                  <Eye className='w-5 h-5' />
-                  <span>Watching</span>
-                </button>
-              </div>
-            </div>
+            {/* Dates Section */}
+            <Box sx={{ mb: 3 }}>
+              <Box
+                sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Calendar sx={{ color: 'rgb(156, 163, 175)' }} />
+                <Typography sx={{ color: 'white' }}>Dates</Typography>
+              </Box>
+              <Button
+                sx={{
+                  backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                  color: 'white',
+                  width: '100%',
+                  justifyContent: 'flex-start',
+                  py: 1.5,
+                  '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
+                }}>
+                Dec 5 - Dec 11, 11:59 PM
+                <Chip
+                  label='Overdue'
+                  size='small'
+                  sx={{
+                    ml: 1,
+                    backgroundColor: 'rgb(220, 38, 38)', // bg-red-600
+                    color: 'white',
+                  }}
+                />
+              </Button>
+            </Box>
 
             {/* Description */}
-            <div>
-              <h3 className='text-lg font-medium text-slate-100 mb-3'>
-                Description
-              </h3>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+            <Box sx={{ mb: 3 }}>
+              <Box
+                sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <Description sx={{ color: 'rgb(156, 163, 175)' }} />
+                <Typography sx={{ color: 'white' }}>Description</Typography>
+              </Box>
+              <StyledTextField
+                multiline
+                rows={4}
+                fullWidth
                 placeholder='Add a more detailed description...'
-                className='w-full h-32 bg-slate-700 rounded-xl p-4 text-slate-100 placeholder-slate-400 resize-none'
+                value={selectedTask?.description || ''}
+                onChange={(e) => setNewDescription(e.target.value)}
               />
-            </div>
-
-            {/* Requirements */}
-            <div>
-              <div className='flex items-center gap-2 mb-4'>
-                <Check className='w-6 h-6 text-green-400' />
-                <h3 className='text-lg font-medium text-slate-100'>Progress</h3>
-              </div>
-              <div className='flex items-center gap-4 mb-4'>
-                <div className='flex-1 h-2 bg-slate-700 rounded-full overflow-hidden'>
-                  <div
-                    className='h-full bg-green-500 transition-all duration-300'
-                    style={{ width: `${calculateProgress()}%` }}
-                  />
-                </div>
-                <span className='text-slate-300 font-medium w-12 text-right'>
-                  {calculateProgress()}%
-                </span>
-              </div>
-              <div className='space-y-2'>
-                {requirements.map((req) => (
-                  <div
-                    key={req.id}
-                    className='flex items-center gap-3 p-3 bg-slate-700/50 rounded-lg'>
-                    <input
-                      type='checkbox'
-                      checked={req.completed}
-                      onChange={() => {
-                        const newReqs = requirements.map((r) =>
-                          r.id === req.id
-                            ? { ...r, completed: !r.completed }
-                            : r
-                        );
-                        setRequirements(newReqs);
-                        onUpdateTask?.({
-                          ...task,
-                          requirements: newReqs,
-                          progress: calculateProgress(),
-                        });
-                      }}
-                      className='w-5 h-5'
-                    />
-                    <span
-                      className={
-                        req.completed
-                          ? 'line-through text-slate-400'
-                          : 'text-slate-100'
-                      }>
-                      {req.text}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            </Box>
 
             {/* Attachments */}
-            <div>
-              <div className='flex items-center justify-between mb-4'>
-                <div className='flex items-center gap-2'>
-                  <Link2 className='w-6 h-6 text-blue-400' />
-                  <h3 className='text-lg font-medium text-slate-100'>
-                    Attachments
-                  </h3>
-                </div>
-                <button className='px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white'>
-                  Add File
-                </button>
-              </div>
-              <div className='space-y-3'>
-                {attachments.map((attachment) => (
-                  <div
-                    key={attachment.id}
-                    className='flex items-start gap-4 p-3 bg-slate-700/50 rounded-xl'>
-                    <img
-                      src={attachment.thumbnail}
-                      alt={attachment.name}
-                      className='w-20 h-14 rounded-lg object-cover'
-                    />
-                    <div>
-                      <p className='text-slate-100 font-medium'>
-                        {attachment.name}
-                      </p>
-                      <p className='text-sm text-slate-400'>
-                        Added {attachment.timeAgo} • {attachment.type}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right sidebar - fixed width */}
-          <div className='w-64 border-l border-slate-700 p-4 space-y-2 flex-shrink-0'>
-            <button className='w-full p-3 text-slate-100 bg-slate-700 hover:bg-slate-600 rounded-xl flex items-center gap-3'>
-              <LogOut className='w-5 h-5' />
-              <span>Leave</span>
-            </button>
-            <button className='w-full p-3 text-slate-100 bg-slate-700 hover:bg-slate-600 rounded-xl flex items-center gap-3'>
-              <User2 className='w-5 h-5' />
-              <span>Members</span>
-            </button>
-            <button className='w-full p-3 text-slate-100 bg-slate-700 hover:bg-slate-600 rounded-xl flex items-center gap-3'>
-              <Tag className='w-5 h-5' />
-              <span>Labels</span>
-            </button>
-            <div className='relative'>
-              <button
-                onClick={() => setShowMoveOptions(!showMoveOptions)}
-                className='w-full p-3 text-slate-100 bg-slate-700 hover:bg-slate-600 rounded-xl flex items-center gap-3'>
-                <ArrowLeftRight className='w-5 h-5' />
-                <span>Move</span>
-              </button>
-              {showMoveOptions && (
-                <div className='absolute left-0 right-0 mt-1 bg-slate-700 rounded-xl shadow-lg border border-slate-600 z-50'>
-                  {Object.entries(lists).map(([listId, list]) => (
-                    <button
-                      key={listId}
-                      onClick={() => {
-                        onMoveTask?.(task?.id, listId);
-                        setShowMoveOptions(false);
+            <Box sx={{ mb: 3 }}>
+              <Box
+                sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <AttachFile sx={{ color: 'rgb(156, 163, 175)' }} />
+                <Typography sx={{ color: 'white' }}>Attachments</Typography>
+              </Box>
+              {selectedTask?.attachments?.length > 0 ? (
+                <Box
+                  sx={{
+                    backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                    borderRadius: 1,
+                    p: 2,
+                  }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box
+                      component='img'
+                      src='path_to_screenshot.png'
+                      sx={{
+                        width: 80,
+                        height: 80,
+                        objectFit: 'cover',
+                        borderRadius: 1,
                       }}
-                      className='w-full p-3 text-left text-slate-100 hover:bg-slate-600 first:rounded-t-xl last:rounded-b-xl'>
-                      {list.title}
-                    </button>
-                  ))}
-                </div>
+                    />
+                    <Box>
+                      <Typography sx={{ color: 'white' }}>
+                        Screenshot 2024-08-17.png
+                      </Typography>
+                      <Typography
+                        variant='body2'
+                        sx={{ color: 'rgb(156, 163, 175)' }}>
+                        Added 1 day ago
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              ) : (
+                <Typography sx={{ color: 'rgb(156, 163, 175)' }}>
+                  No attachments yet
+                </Typography>
               )}
-            </div>
-            <button
-              onClick={() => {
-                onDeleteTask?.(task?.id);
-                onClose();
-              }}
-              className='w-full p-3 text-white bg-red-600 hover:bg-red-700 rounded-xl flex items-center gap-3 mt-auto'>
-              <Trash2 className='w-5 h-5' />
-              <span>Delete</span>
-            </button>
-          </div>
-        </div>
-      </div>
+            </Box>
 
-      <style
-        jsx
-        global>{`
-        .task-modal .ant-modal-content {
-          background-color: transparent;
-          box-shadow: none;
-          padding: 0;
-        }
-        .task-modal .ant-modal-body {
-          padding: 0;
-        }
-        .task-modal .ant-modal-close {
-          top: 1rem;
-          right: 1rem;
-          color: #94a3b8;
-        }
-        .task-modal .ant-modal-close:hover {
-          color: white;
-        }
-      `}</style>
-    </Modal>
+            {/* Progress */}
+            <Box>
+              <Box
+                sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <Requirements sx={{ color: 'rgb(156, 163, 175)' }} />
+                <Typography sx={{ color: 'white' }}>Progress</Typography>
+              </Box>
+              <Box sx={{ mb: 2 }}>
+                <LinearProgress
+                  variant='determinate'
+                  value={
+                    selectedTask?.progress
+                      ? Math.round(selectedTask?.progress / 100) * 100
+                      : 0
+                  }
+                  sx={{
+                    backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                    '& .MuiLinearProgress-bar': {
+                      backgroundColor: 'rgb(96, 165, 250)', // text-blue-400
+                    },
+                  }}
+                />
+                <Typography
+                  variant='body2'
+                  sx={{
+                    color: 'rgb(156, 163, 175)',
+                    textAlign: 'right',
+                    mt: 0.5,
+                  }}>
+                  {selectedTask?.progress
+                    ? Math.round(selectedTask?.progress / 100) * 100
+                    : 0}
+                  %
+                </Typography>
+              </Box>
+              {/* Requirements List */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {selectedTask?.requirements?.map((requirement, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                      borderRadius: 1,
+                      p: 2,
+                    }}>
+                    <Typography sx={{ color: 'white' }}>
+                      {requirement}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Right Sidebar */}
+          <Box
+            sx={{
+              width: 240,
+              borderLeft: '1px solid rgba(75, 85, 99, 0.5)',
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+            }}>
+            <Button
+              startIcon={<Leave />}
+              sx={{
+                backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                color: 'white',
+                '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
+              }}>
+              Leave
+            </Button>
+            <Button
+              startIcon={<Members />}
+              sx={{
+                backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                color: 'white',
+                '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
+              }}>
+              Members
+            </Button>
+            <Button
+              startIcon={<Labels />}
+              sx={{
+                backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                color: 'white',
+                '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
+              }}>
+              Labels
+            </Button>
+            <Button
+              startIcon={<Requirements />}
+              sx={{
+                backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                color: 'white',
+                '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
+              }}>
+              Requirements
+            </Button>
+            <Button
+              startIcon={<AttachFile />}
+              sx={{
+                backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                color: 'white',
+                '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
+              }}>
+              Attachment
+            </Button>
+            <Button
+              startIcon={<Trash />}
+              sx={{
+                backgroundColor: 'rgb(220, 38, 38)', // bg-red-600
+                color: 'white',
+                '&:hover': { backgroundColor: 'rgb(185, 28, 28)' }, // bg-red-700
+                mt: 'auto',
+              }}>
+              Delete
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+    </StyledDialog>
   );
 };
 
-export default TaskDetailsModal;
+export default TaskDetailsDialog;

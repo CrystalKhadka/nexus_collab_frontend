@@ -33,7 +33,7 @@ function App() {
           element={<DashboardPage />}
         />
         <Route
-          path='/board'
+          path='/board/:id'
           element={<ProjectBoard />}
         />
         <Route

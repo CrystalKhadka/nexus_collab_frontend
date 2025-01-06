@@ -150,8 +150,8 @@ const LoginPage = () => {
 
   return (
     <Layout
-      className='min-h-screen'
-      style={{ backgroundColor: '#828282', fontFamily: 'Satoshi' }}>
+      className='min-h-screen bg-gray-900 '
+      style={{ fontFamily: 'Satoshi' }}>
       {/* Navbar */}
       <nav className='w-full bg-black/20 backdrop-blur-sm shadow-sm sticky top-0 z-50'>
         <div className='container mx-auto px-6 py-4 flex justify-between items-center'>
@@ -176,7 +176,7 @@ const LoginPage = () => {
       </nav>
 
       {/* Main Content */}
-      <Content className='p-6'>
+      <Content className='p-6 bg-gray-800/50'>
         <div className='container mx-auto'>
           <div className='grid lg:grid-cols-2 gap-12 items-center'>
             {/* Logo Side */}

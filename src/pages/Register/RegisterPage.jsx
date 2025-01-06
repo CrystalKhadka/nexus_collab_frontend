@@ -144,7 +144,7 @@ const RegisterPage = () => {
             : 'password'
         }
         placeholder={placeholder}
-        className='h-12 rounded-xl'
+        className='h-12 rounded-xl '
         prefix={<Lock className='h-5 w-5 text-gray-400' />}
         suffix={
           <button
@@ -167,9 +167,7 @@ const RegisterPage = () => {
   );
 
   return (
-    <Layout
-      className='min-h-screen'
-      style={{ backgroundColor: '#828282' }}>
+    <Layout className='min-h-screen bg-gray-900'>
       {/* Navbar */}
       <nav className='w-full backdrop-blur-md bg-black/20 shadow-sm sticky top-0 z-50'>
         <div className='container mx-auto px-6 py-4 flex justify-between items-center'>
@@ -194,7 +192,7 @@ const RegisterPage = () => {
       </nav>
 
       {/* Main Content */}
-      <Content className='p-6'>
+      <Content className='px-6  bg-gray-800/50'>
         <div className='container mx-auto'>
           <div className='grid lg:grid-cols-2 gap-12 items-center'>
             {/* Logo Side */}
@@ -211,8 +209,8 @@ const RegisterPage = () => {
 
             {/* Form Side */}
             <div className='w-full max-w-md mx-auto'>
-              <div className='space-y-8'>
-                <h1 className='text-4xl font-bold text-white text-center lg:text-left'>
+              <div className='space-y-6'>
+                <h1 className='text-2xl font-bold text-white text-center lg:text-left'>
                   Create an account to access the system
                 </h1>
                 <Form
@@ -220,8 +218,7 @@ const RegisterPage = () => {
                   name='register'
                   onFinish={onFinish}
                   layout='vertical'
-                  size='large'
-                  className='space-y-6'>
+                  size='large'>
                   <Form.Item
                     name='fullName'
                     rules={[
@@ -246,7 +243,7 @@ const RegisterPage = () => {
                     <Input
                       prefix={<Mail className='h-5 w-5 text-gray-400' />}
                       placeholder='Email Address'
-                      className='h-12 rounded-xl'
+                      className='h-12 rounded-xl  '
                     />
                   </Form.Item>
 

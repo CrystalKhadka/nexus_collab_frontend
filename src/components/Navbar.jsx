@@ -14,7 +14,7 @@ const Navbar = () => {
           <div className='flex items-center gap-8'>
             <img
               className='h-8'
-              src='/api/placeholder/120/32'
+              src='/images/logo1.png'
               alt='Logo'
             />
           </div>
@@ -31,7 +31,7 @@ const Navbar = () => {
               whileHover={{ scale: 1.02 }}
               className='flex items-center gap-3 bg-gray-800/50 hover:bg-gray-800 px-4 py-2 rounded-xl transition-colors'>
               <img
-                src='/api/placeholder/32/32'
+                src='/images/download.jpg'
                 alt='User Avatar'
                 className='w-8 h-8 rounded-full border border-white/10'
               />
