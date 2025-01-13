@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { addListToProjectApi, createListApi } from '../../apis/Api';
 import TaskList from './TaskList';
 
-const KanbanBoard = ({ lists, setLists, projectId, onTaskClick }) => {
+const KanbanBoard = ({ lists, setLists, projectId, onTaskClick,onDeleteTask }) => {
   const [isAddingList, setIsAddingList] = useState(false);
   const [listName, setListName] = useState('');
   const [snackbar, setSnackbar] = useState({
@@ -75,6 +75,7 @@ const KanbanBoard = ({ lists, setLists, projectId, onTaskClick }) => {
           projectId={projectId}
           onTaskClick={onTaskClick}
           searchQuery={''}
+          onDeleteTask={onDeleteTask}
         />
       ))}
 

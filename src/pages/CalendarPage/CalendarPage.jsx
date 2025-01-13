@@ -12,7 +12,6 @@ import {
 import dayjs from 'dayjs';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import React, { useState } from 'react';
-import Navbar from '../../components/Navbar';
 import { Sidebar } from '../../components/Sidebar';
 
 const { Content } = Layout;
@@ -176,9 +175,8 @@ const CalendarPage = () => {
 
   return (
     <Layout className='min-h-screen bg-gray-900 overflow-hidden'>
-      <Navbar />
-      <Layout className='mt-16 bg-gray-900 '>
-        <Sidebar />
+      <Layout className=' bg-gray-900 '>
+       
         <Content className='p-6 bg-gray-800/50 overflow-scroll'>
           <div className='max-w-7xl mx-auto'>
             {/* Calendar Header */}

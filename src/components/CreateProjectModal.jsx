@@ -93,7 +93,7 @@ const CreateProjectModal = ({ open, onClose, onSubmit, onImageUpload }) => {
     <Modal
       open={open}
       onClose={onClose}
-      className='overflow-y-auto'
+      className='overflow-y-auto '
       aria-labelledby='create-project-modal'
       aria-describedby='create-project-form'>
       <Box
@@ -103,11 +103,12 @@ const CreateProjectModal = ({ open, onClose, onSubmit, onImageUpload }) => {
           left: '50%',
           transform: 'translate(-50%, -50%)',
           width: { xs: '90%', sm: 500 },
-          bgcolor: 'background.paper',
+
           borderRadius: 2,
           boxShadow: 24,
           p: 4,
-        }}>
+        }}
+        className='overflow-y-auto bg-gray-900'>
         <Box
           sx={{
             display: 'flex',

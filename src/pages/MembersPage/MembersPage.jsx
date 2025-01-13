@@ -1,114 +1,253 @@
-import { EditOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Input, Layout, Modal } from 'antd';
-import React, { useState } from 'react';
-import Navbar from '../../components/Navbar';
-import { Sidebar } from '../../components/Sidebar';
-const { Content } = Layout;
+import {
+  Check as CheckIcon,
+  Clear as ClearIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  FilterList as FilterListIcon,
+  PauseCircle as PauseIcon,
+  PersonAdd as PersonAddIcon,
+} from '@mui/icons-material';
+import {
+  Avatar,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Container,
+  IconButton,
+  Paper,
+  Stack,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { getProjectByIdApi, searchUserApi } from '../../apis/Api';
+import InviteMembersModal from '../../components/InviteUserModal';
 
 const MembersPage = () => {
-  const [members] = useState([
-    { id: 1, name: 'Crystal Khadka', role: 'Admin', tasksAssigned: '0/1' },
-    { id: 2, name: 'Rushmit Karki', role: 'Member', tasksAssigned: '0/1' },
-  ]);
-
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [members, setMembers] = useState([]);
   const [joinRequests] = useState([
     { id: 1, name: 'Safal Pandey' },
     { id: 2, name: 'Pramesh Pathak' },
   ]);
-
+  const [currentProject, setCurrentProject] = useState(null);
+  const { id: projectId } = useParams();
   const [isInviteModalVisible, setIsInviteModalVisible] = useState(false);
+  const [users, setUsers] = useState([]);
 
-  const ActionButton = ({ text, variant }) => {
-    const getButtonStyle = () => {
+  useEffect(() => {
+    const fetchProjectData = async () => {
+      try {
+        const projectResponse = await getProjectByIdApi(projectId);
+        setCurrentProject(projectResponse.data.data);
+      } catch (error) {
+        console.error('Error fetching project data:', error);
+      }
+    };
+
+    if (projectId) {
+      fetchProjectData();
+    }
+  }, [projectId]);
+
+  const searchUser = (e) => {
+    const search = e.target.value;
+    searchUserApi(search)
+      .then((res) => {
+        setUsers(res.data.data);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  };
+
+  const isAdmin = (id) => {
+    return currentProject?.admin.includes(id);
+  };
+
+  const ActionButton = ({ text, variant, onClick }) => {
+    const getButtonProps = () => {
       switch (variant) {
         case 'leave':
         case 'reject':
-          return 'bg-red-500 hover:bg-red-600';
+          return {
+            color: 'error',
+            startIcon: <ClearIcon />,
+          };
         case 'remove':
-          return 'bg-red-500 hover:bg-red-600';
+          return {
+            color: 'error',
+            startIcon: <DeleteIcon />,
+          };
         case 'accept':
-          return 'bg-green-500 hover:bg-green-600';
+          return {
+            color: 'success',
+            startIcon: <CheckIcon />,
+          };
         case 'hold':
-          return 'bg-yellow-400 hover:bg-yellow-500';
+          return {
+            color: 'warning',
+            startIcon: <PauseIcon />,
+          };
         default:
-          return 'bg-gray-500 hover:bg-gray-600';
+          return {
+            color: 'inherit',
+            disabled: true,
+          };
       }
     };
 
     return (
-      <button
-        className={`px-6 py-2 rounded-full text-white font-medium transition-colors ${getButtonStyle()}`}>
+      <Button
+        variant='contained'
+        size={isMobile ? 'small' : 'medium'}
+        {...getButtonProps()}
+        onClick={onClick}>
         {text}
-      </button>
+      </Button>
     );
   };
 
   return (
-    <Layout className='min-h-screen bg-gray-900'>
-      <Navbar />
-      <Layout className='mt-16 bg-gray-900'>
-        <Sidebar />
-        <Content className='p-8 bg-gray-800/50'>
-          <div className='max-w-6xl mx-auto'>
-            {/* Header */}
-            <div className='flex items-center justify-between mb-8'>
-              <div className='flex items-center gap-4'>
-                <h1 className='text-2xl font-semibold text-white'>Project 1</h1>
-                <Button
-                  icon={<EditOutlined />}
-                  className='flex items-center bg-blue-500 border-none text-white hover:bg-blue-600'>
-                  Edit
-                </Button>
-              </div>
-              <Button
-                onClick={() => setIsInviteModalVisible(true)}
-                className='bg-gray-200 hover:bg-gray-300 border-none text-gray-800 font-medium'>
-                Invite Members
-              </Button>
-            </div>
+    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 4 }}>
+      <Container maxWidth='lg'>
+        {/* Header */}
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          justifyContent='space-between'
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          spacing={2}
+          mb={4}>
+          <Stack
+            direction='row'
+            spacing={2}
+            alignItems='center'>
+            <Typography
+              variant='h4'
+              component='h1'>
+              {currentProject?.name || 'Project 1'}
+            </Typography>
+            <IconButton
+              color='primary'
+              size='small'>
+              <EditIcon />
+            </IconButton>
+          </Stack>
 
-            {/* Project Members Section */}
-            <div className='mb-8'>
-              <div className='flex items-center justify-between mb-4'>
-                <h2 className='text-xl text-white'>Project Members</h2>
-                <Button className='bg-white border-none'>Filter</Button>
-              </div>
+          <Button
+            variant='contained'
+            startIcon={<PersonAddIcon />}
+            onClick={() => setIsInviteModalVisible(true)}>
+            Invite Members
+          </Button>
+        </Stack>
 
-              <div className='space-y-4'>
-                {members.map((member) => (
-                  <div
-                    key={member.id}
-                    className='flex items-center justify-between py-4 border-b border-white/10'>
-                    <span className='text-lg text-white'>{member.name}</span>
-                    <div className='flex items-center gap-16'>
-                      <span className='text-gray-300'>
-                        Task Assigned {member.tasksAssigned}
-                      </span>
-                      <span className='w-32 text-gray-300'>{member.role}</span>
-                      <ActionButton
-                        text={member.role === 'Admin' ? 'Leave' : 'Remove'}
-                        variant={member.role === 'Admin' ? 'leave' : 'remove'}
+        {/* Project Members Section */}
+        <Paper
+          elevation={2}
+          sx={{ p: 3, mb: 4 }}>
+          <Stack
+            direction='row'
+            justifyContent='space-between'
+            alignItems='center'
+            mb={3}>
+            <Typography variant='h5'>Project Members</Typography>
+            <Button
+              startIcon={<FilterListIcon />}
+              variant='outlined'>
+              Filter
+            </Button>
+          </Stack>
+
+          <Stack spacing={2}>
+            {currentProject?.members.map((member) => (
+              <Card
+                key={member._id}
+                variant='outlined'>
+                <CardContent>
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    justifyContent='space-between'
+                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                    spacing={2}>
+                    <Stack spacing={1}>
+                      <Typography variant='h6'>
+                        {member.firstName + ' ' + member.lastName}
+                      </Typography>
+                      <Typography
+                        variant='body2'
+                        color='text.secondary'>
+                        {member.email}
+                      </Typography>
+                    </Stack>
+
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={2}
+                      alignItems={{ xs: 'flex-start', sm: 'center' }}>
+                      <Chip
+                        label={`Tasks: ${member.tasksAssigned}`}
+                        variant='outlined'
+                        size={isMobile ? 'small' : 'medium'}
                       />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                      <Chip
+                        label={member.role}
+                        variant='outlined'
+                        size={isMobile ? 'small' : 'medium'}
+                      />
+                      <ActionButton
+                        text='Remove'
+                        variant={isAdmin(member._id) ? '' : 'remove'}
+                      />
+                    </Stack>
+                  </Stack>
+                </CardContent>
+              </Card>
+            ))}
+          </Stack>
+        </Paper>
 
-            {/* Join Requests Section */}
-            <div>
-              <div className='flex items-center justify-between mb-4'>
-                <h2 className='text-xl text-white'>Join Request</h2>
-                <Button className='bg-white border-none'>Show All</Button>
-              </div>
+        {/* Join Requests Section */}
+        <Paper
+          elevation={2}
+          sx={{ p: 3 }}>
+          <Stack
+            direction='row'
+            justifyContent='space-between'
+            alignItems='center'
+            mb={3}>
+            <Typography variant='h5'>Join Requests</Typography>
+            <Button variant='outlined'>Show All</Button>
+          </Stack>
 
-              <div className='space-y-4'>
-                {joinRequests.map((request) => (
-                  <div
-                    key={request.id}
-                    className='flex items-center justify-between py-4 border-b border-white/10'>
-                    <span className='text-lg text-white'>{request.name}</span>
-                    <div className='flex items-center gap-4'>
+          <Stack spacing={2}>
+            {joinRequests.map((request) => (
+              <Card
+                key={request.id}
+                variant='outlined'>
+                <CardContent>
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    justifyContent='space-between'
+                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                    spacing={2}>
+                    <Stack
+                      direction='row'
+                      spacing={2}
+                      alignItems='center'>
+                      <Avatar>{request.name[0]}</Avatar>
+                      <Typography variant='h6'>{request.name}</Typography>
+                    </Stack>
+
+                    <Stack
+                      direction='row'
+                      spacing={1}
+                      sx={{ flexWrap: 'wrap', gap: 1 }}>
                       <ActionButton
                         text='Accept'
                         variant='accept'
@@ -121,33 +260,21 @@ const MembersPage = () => {
                         text='Reject'
                         variant='reject'
                       />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+                    </Stack>
+                  </Stack>
+                </CardContent>
+              </Card>
+            ))}
+          </Stack>
+        </Paper>
 
-          {/* Invite Members Modal */}
-          <Modal
-            title='Invite Members'
-            open={isInviteModalVisible}
-            onCancel={() => setIsInviteModalVisible(false)}
-            footer={null}>
-            <div className='p-4'>
-              <Input
-                prefix={<SearchOutlined className='text-gray-400' />}
-                placeholder='Search members by name or email'
-                className='mb-4'
-              />
-              <div className='space-y-4'>
-                {/* Add member search results here */}
-              </div>
-            </div>
-          </Modal>
-        </Content>
-      </Layout>
-    </Layout>
+        {/* Invite Members Modal */}
+        <InviteMembersModal
+          open={isInviteModalVisible}
+          onClose={() => setIsInviteModalVisible(false)}
+        />
+      </Container>
+    </Box>
   );
 };
 

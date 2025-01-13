@@ -1,5 +1,5 @@
 import { message } from 'antd';
-import { changeTaskNameApi } from '../apis/Api';
+import { changeTaskNameApi, deleteTaskApi } from '../apis/Api';
 
 export const useProjectBoard = ({ lists, setLists }) => {
   const handleDragEnd = (result) => {
@@ -50,13 +50,26 @@ export const useProjectBoard = ({ lists, setLists }) => {
   };
 
   const handleDeleteTask = (taskId) => {
-    setLists((prevLists) =>
-      prevLists.map((list) => ({
-        ...list,
-        tasks: list.tasks.filter((task) => task._id !== taskId),
-      }))
-    );
-    message.success('Task deleted successfully');
+    deleteTaskApi(taskId)
+      .then((res) => {
+        setLists((prevLists) =>
+          prevLists.map((list) => {
+            return {
+              ...list,
+              tasks: list.tasks.filter((task) => task._id !== taskId),
+            };
+          })
+        );
+        message.success('Task deleted successfully');
+      })
+      .catch((err) => {
+        console.log(err);
+        if (err.response) {
+          message.error(err.response.data.message);
+        } else {
+          message.error('Something went wrong');
+        }
+      });
   };
 
   const handleMoveTask = (taskId, newListId) => {
@@ -96,22 +109,13 @@ export const useProjectBoard = ({ lists, setLists }) => {
     message.success('Task moved successfully');
   };
 
-  const handleNameChange = (newName, taskId) => {
-    console.log(taskId, newName);
-    changeTaskNameApi({ data: { name: newName }, id: taskId })
-      .then((res) => {
-        message.success('Task name updated successfully');
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  };
+
 
   return {
     handleDragEnd,
     handleUpdateTask,
     handleDeleteTask,
     handleMoveTask,
-    handleNameChange,
+  
   };
 };

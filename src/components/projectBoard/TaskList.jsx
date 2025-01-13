@@ -20,6 +20,7 @@ const TaskList = ({
   projectId,
   searchQuery,
   onTaskClick,
+  onDeleteTask
 }) => {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [taskTitle, setTaskTitle] = useState('');
@@ -142,6 +143,7 @@ const TaskList = ({
                   index={index}
                   listId={list._id}
                   onClick={() => onTaskClick(task)}
+                  onDelete={onDeleteTask}
                 />
               ))}
             {provided.placeholder}

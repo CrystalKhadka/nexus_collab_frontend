@@ -1,6 +1,7 @@
 import {
   AttachFile,
-  CalendarToday as Calendar,
+  CheckCircle as Complete,
+  Event as DateIcon,
   Description,
   LocalOffer as Labels,
   ExitToApp as Leave,
@@ -14,28 +15,42 @@ import {
 import {
   Box,
   Button,
+  Card,
+  CardContent,
+  Checkbox,
   Chip,
   Dialog,
+  FormControlLabel,
+  Grid,
   IconButton,
   LinearProgress,
   Menu,
   MenuItem,
-  Select,
+  styled,
   TextField,
   Typography,
-  styled,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import React, { useEffect, useState } from 'react';
+import AssignUserModal from './projectBoard/AssignUserModal';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
     backgroundColor: 'rgb(17, 24, 39)',
-    maxWidth: '90vw',
-    width: '90vw',
-    height: '90vh',
-    margin: 16,
-    borderRadius: 12,
+    width: '95vw',
+    height: '95vh',
+    margin: theme.spacing(1),
+    borderRadius: theme.spacing(2),
     overflow: 'hidden',
+    [theme.breakpoints.up('md')]: {
+      width: '90vw',
+      height: '90vh',
+      margin: theme.spacing(2),
+    },
   },
 }));
 
@@ -44,25 +59,29 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
     color: 'rgb(209, 213, 219)',
     backgroundColor: 'rgba(31, 41, 55, 0.5)',
     borderRadius: theme.shape.borderRadius,
+    transition: theme.transitions.create(['background-color']),
     '&:hover': {
       backgroundColor: 'rgba(31, 41, 55, 0.7)',
     },
   },
   '& .MuiOutlinedInput-notchedOutline': {
     border: 'none',
+  },
+  '& .MuiInputBase-inputMultiline': {
+    padding: theme.spacing(2),
   },
 }));
 
-const StyledSelect = styled(Select)(({ theme }) => ({
-  '& .MuiSelect-select': {
-    color: 'rgb(209, 213, 219)',
-    backgroundColor: 'rgba(31, 41, 55, 0.5)',
-    '&:hover': {
-      backgroundColor: 'rgba(31, 41, 55, 0.7)',
-    },
+const ActionButton = styled(Button)(({ theme, color }) => ({
+  backgroundColor: color || 'rgba(31, 41, 55, 0.5)',
+  color: 'white',
+  padding: theme.spacing(1, 2),
+  '&:hover': {
+    backgroundColor: color ? `${color}CC` : 'rgba(31, 41, 55, 0.7)',
   },
-  '& .MuiOutlinedInput-notchedOutline': {
-    border: 'none',
+  [theme.breakpoints.down('sm')]: {
+    fontSize: '0.8rem',
+    padding: theme.spacing(0.5, 1),
   },
 }));
 
@@ -71,42 +90,73 @@ const TaskDetailsDialog = ({
   onClose,
   selectedTask,
   handleNameChange,
+  handleDescriptionChange,
+  onDeleteTask,
+  handleAssign,
+  handleDateChange,
+  handleStatusChange,
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [assignUserModalOpen, setAssignUserModalOpen] = useState(false);
   const [listMenuAnchor, setListMenuAnchor] = useState(null);
-
   const [task, setTask] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
   const [newDescription, setNewDescription] = useState(
     selectedTask?.description
   );
   const [newName, setNewName] = useState(selectedTask?.name);
   const [changingName, setChangingName] = useState(false);
+  const [startDate, setStartDate] = useState(selectedTask?.startDate || null);
+  const [endDate, setDueDate] = useState(selectedTask?.endDate || null);
+  const [completed, setCompleted] = useState(
+    selectedTask?.status === 'completed'
+  );
 
   useEffect(() => {
     if (!selectedTask) return;
-
     setTask(selectedTask);
-    console.log(selectedTask);
+    setNewDescription(selectedTask.description);
+    setNewName(selectedTask.name);
+    setStartDate(selectedTask.startDate);
+    setDueDate(selectedTask.endDate);
+    setCompleted(selectedTask.status === 'completed');
+
+    // Check if task is overdue
+    if (
+      selectedTask.endDate &&
+      new Date(selectedTask.endDate) < new Date() &&
+      selectedTask.status !== 'completed'
+    ) {
+      handleStatusChange(selectedTask._id, 'overdue');
+    }
   }, [selectedTask]);
 
-  const formatDate = (date) => {
-    if (!date) return 'Not set';
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+  const handleComplete = (event) => {
+    setCompleted(event.target.checked);
+    handleStatusChange(
+      selectedTask._id,
+      event.target.checked ? 'completed' : 'in-progress'
+    );
   };
 
-  const getPriorityColor = (priority) => {
-    const colors = {
-      low: '#3B82F6', // blue-500
-      medium: '#F59E0B', // yellow-500
-      high: '#EF4444', // red-500
-    };
-    return colors[priority] || colors.low;
+  const getPriorityColor = (priority) =>
+    ({
+      low: '#3B82F6',
+      medium: '#F59E0B',
+      high: '#EF4444',
+    }[priority] || '#3B82F6');
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed':
+        return '#10B981';
+      case 'overdue':
+        return '#EF4444';
+      case 'in-progress':
+        return '#F59E0B';
+      default:
+        return '#3B82F6';
+    }
   };
 
   return (
@@ -119,87 +169,78 @@ const TaskDetailsDialog = ({
         {/* Header */}
         <Box
           sx={{
-            p: 2,
+            p: { xs: 1, sm: 2 },
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             borderBottom: '1px solid rgba(75, 85, 99, 0.5)',
           }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
             <ListIcon sx={{ color: 'rgb(96, 165, 250)' }} />
-            <Box>
-              <div className='flex items-center'>
+            <Box sx={{ flex: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <StyledTextField
                   variant='standard'
-                  defaultValue={selectedTask?.name}
+                  value={newName}
                   InputProps={{
                     disableUnderline: true,
-                    style: { fontSize: '1.25rem', fontWeight: 500 },
+                    style: {
+                      fontSize: isMobile ? '1rem' : '1.25rem',
+                      fontWeight: 500,
+                    },
                   }}
                   onChange={(e) => setNewName(e.target.value)}
-                  onClick={() => {
-                    setChangingName(true);
-                  }}
+                  onClick={() => setChangingName(true)}
                 />
                 {changingName && (
-                  // Ok Field
-                  <Button
-                    onClick={() => {
-                      setChangingName(false);
-                      handleNameChange(newName, selectedTask?._id);
-                    }}>
-                    OK
-                  </Button>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <ActionButton
+                      size={isMobile ? 'small' : 'medium'}
+                      onClick={() => {
+                        setChangingName(false);
+                        handleNameChange(newName, selectedTask?._id);
+                      }}>
+                      Save
+                    </ActionButton>
+                    <ActionButton
+                      size={isMobile ? 'small' : 'medium'}
+                      onClick={() => {
+                        setChangingName(false);
+                        setNewName(selectedTask?.name);
+                      }}>
+                      Cancel
+                    </ActionButton>
+                  </Box>
                 )}
+              </Box>
 
-                {changingName && (
-                  // Cancel Field
-                  <Button
-                    onClick={() => {
-                      setChangingName(true);
-                      setNewName(selectedTask?.name);
-                    }}>
-                    Cancel
-                  </Button>
-                )}
-
-                {!changingName && (
-                  // Edit Field
-                  <Button
-                    onClick={() => {
-                      setChangingName(true);
-                      setNewName(selectedTask?.name);
-                    }}>
-                    Edit
-                  </Button>
-                )}
-              </div>
               <Box
-                sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                <Typography
-                  variant='body2'
-                  sx={{ color: 'rgb(156, 163, 175)' }}>
-                  in list
-                </Typography>
-                <Button
+                sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={completed}
+                      onChange={handleComplete}
+                      icon={<Complete />}
+                      checkedIcon={<Complete />}
+                      sx={{ color: 'rgb(156, 163, 175)' }}
+                    />
+                  }
+                  label='Complete'
+                />
+                <Chip
+                  label={selectedTask?.status || 'pending'}
                   onClick={(e) => setListMenuAnchor(e.currentTarget)}
                   sx={{
-                    backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                    backgroundColor: getStatusColor(selectedTask?.status),
                     color: 'white',
                     '&:hover': {
-                      backgroundColor: 'rgba(31, 41, 55, 0.7)',
+                      backgroundColor: `${getStatusColor(
+                        selectedTask?.status
+                      )}CC`,
                     },
-                  }}>
-                  {selectedTask?.status || 'pending'}
-                </Button>
-                <Menu
-                  anchorEl={listMenuAnchor}
-                  open={Boolean(listMenuAnchor)}
-                  onClose={() => setListMenuAnchor(null)}>
-                  <MenuItem>pending</MenuItem>
-                  <MenuItem>in-progress</MenuItem>
-                  <MenuItem>completed</MenuItem>
-                </Menu>
+                  }}
+                />
               </Box>
             </Box>
           </Box>
@@ -211,253 +252,261 @@ const TaskDetailsDialog = ({
         </Box>
 
         {/* Main Content */}
-        <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flex: 1,
+            overflow: 'hidden',
+            flexDirection: { xs: 'column', md: 'row' },
+          }}>
           {/* Left Panel */}
-          <Box sx={{ flex: 1, p: 3, overflowY: 'auto' }}>
-            {/* Quick Actions */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              <Button
-                startIcon={<Members />}
-                sx={{
-                  backgroundColor: 'rgba(31, 41, 55, 0.5)',
-                  color: 'white',
-                  '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
-                }}>
-                Members
-                {selectedTask?.taskMembers?.length || 0}
-              </Button>
-              <Button
-                startIcon={<Labels />}
-                sx={{
-                  backgroundColor: 'rgba(31, 41, 55, 0.5)',
-                  color: 'white',
-                  '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
-                }}>
-                Labels ({selectedTask?.taskLabel?.length || 0})
-              </Button>
-              <Button
-                startIcon={<Priority />}
-                sx={{
-                  backgroundColor: 'rgba(31, 41, 55, 0.5)',
-                  color: getPriorityColor(selectedTask?.priority),
-                  '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
-                }}>
-                {selectedTask?.priority || 'low'}
-              </Button>
-            </Box>
+          <Box sx={{ flex: 1, p: { xs: 1, sm: 2, md: 3 }, overflowY: 'auto' }}>
+            <Grid
+              container
+              spacing={2}>
+              {/* Quick Actions */}
+              <Grid
+                item
+                xs={12}>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <ActionButton startIcon={<Members />}>
+                    Members ({selectedTask?.members?.length || 0})
+                  </ActionButton>
+                  <ActionButton startIcon={<Labels />}>
+                    Labels ({selectedTask?.taskLabel?.length || 0})
+                  </ActionButton>
+                  <ActionButton
+                    startIcon={<Priority />}
+                    sx={{ color: getPriorityColor(selectedTask?.priority) }}>
+                    {selectedTask?.priority || 'low'}
+                  </ActionButton>
+                </Box>
+              </Grid>
 
-            {/* Dates Section */}
-            <Box sx={{ mb: 3 }}>
-              <Box
-                sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <Calendar sx={{ color: 'rgb(156, 163, 175)' }} />
-                <Typography sx={{ color: 'white' }}>Dates</Typography>
-              </Box>
-              <Button
-                sx={{
-                  backgroundColor: 'rgba(31, 41, 55, 0.5)',
-                  color: 'white',
-                  width: '100%',
-                  justifyContent: 'flex-start',
-                  py: 1.5,
-                  '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
-                }}>
-                Dec 5 - Dec 11, 11:59 PM
-                <Chip
-                  label='Overdue'
-                  size='small'
-                  sx={{
-                    ml: 1,
-                    backgroundColor: 'rgb(220, 38, 38)', // bg-red-600
-                    color: 'white',
-                  }}
-                />
-              </Button>
-            </Box>
-
-            {/* Description */}
-            <Box sx={{ mb: 3 }}>
-              <Box
-                sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <Description sx={{ color: 'rgb(156, 163, 175)' }} />
-                <Typography sx={{ color: 'white' }}>Description</Typography>
-              </Box>
-              <StyledTextField
-                multiline
-                rows={4}
-                fullWidth
-                placeholder='Add a more detailed description...'
-                value={selectedTask?.description || ''}
-                onChange={(e) => setNewDescription(e.target.value)}
-              />
-            </Box>
-
-            {/* Attachments */}
-            <Box sx={{ mb: 3 }}>
-              <Box
-                sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <AttachFile sx={{ color: 'rgb(156, 163, 175)' }} />
-                <Typography sx={{ color: 'white' }}>Attachments</Typography>
-              </Box>
-              {selectedTask?.attachments?.length > 0 ? (
-                <Box
-                  sx={{
-                    backgroundColor: 'rgba(31, 41, 55, 0.5)',
-                    borderRadius: 1,
-                    p: 2,
-                  }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box
-                      component='img'
-                      src='path_to_screenshot.png'
-                      sx={{
-                        width: 80,
-                        height: 80,
-                        objectFit: 'cover',
-                        borderRadius: 1,
-                      }}
-                    />
-                    <Box>
-                      <Typography sx={{ color: 'white' }}>
-                        Screenshot 2024-08-17.png
+              {/* Dates Section - Only show if dates exist */}
+              {(startDate || endDate) && (
+                <Grid
+                  item
+                  xs={12}>
+                  <Card sx={{ bgcolor: 'rgba(31, 41, 55, 0.3)' }}>
+                    <CardContent>
+                      <Typography
+                        variant='h6'
+                        sx={{ color: 'white', mb: 2 }}>
+                        <DateIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
+                        Dates
                       </Typography>
+                      <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                          <DatePicker
+                            label='Start Date'
+                            value={startDate}
+                            onChange={(newDate) => {
+                              setStartDate(newDate);
+                              handleDateChange(
+                                selectedTask._id,
+                                'startDate',
+                                newDate
+                              );
+                            }}
+                            renderInput={(params) => (
+                              <StyledTextField {...params} />
+                            )}
+                          />
+                          <DatePicker
+                            label='Due Date'
+                            value={endDate}
+                            onChange={(newDate) => {
+                              setDueDate(newDate);
+                              handleDateChange(
+                                selectedTask._id,
+                                'endDate',
+                                newDate
+                              );
+                            }}
+                            renderInput={(params) => (
+                              <StyledTextField {...params} />
+                            )}
+                          />
+                        </Box>
+                      </LocalizationProvider>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+
+              {/* Description */}
+              <Grid
+                item
+                xs={12}>
+                <Card sx={{ bgcolor: 'rgba(31, 41, 55, 0.3)' }}>
+                  <CardContent>
+                    <Typography
+                      variant='h6'
+                      sx={{ color: 'white', mb: 2 }}>
+                      <Description sx={{ verticalAlign: 'middle', mr: 1 }} />
+                      Description
+                    </Typography>
+                    <StyledTextField
+                      multiline
+                      rows={4}
+                      fullWidth
+                      placeholder='Add a detailed description...'
+                      value={newDescription}
+                      onChange={(e) => setNewDescription(e.target.value)}
+                    />
+                    <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                      <ActionButton
+                        onClick={() =>
+                          handleDescriptionChange(
+                            newDescription,
+                            selectedTask?._id
+                          )
+                        }>
+                        Save
+                      </ActionButton>
+                      <ActionButton
+                        onClick={() =>
+                          setNewDescription(selectedTask?.description)
+                        }>
+                        Cancel
+                      </ActionButton>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Progress Section */}
+              <Grid
+                item
+                xs={12}>
+                <Card sx={{ bgcolor: 'rgba(31, 41, 55, 0.3)' }}>
+                  <CardContent>
+                    <Typography
+                      variant='h6'
+                      sx={{ color: 'white', mb: 2 }}>
+                      <Requirements sx={{ verticalAlign: 'middle', mr: 1 }} />
+                      Progress
+                    </Typography>
+                    <Box sx={{ mb: 2 }}>
+                      <LinearProgress
+                        variant='determinate'
+                        value={completed ? 100 : selectedTask?.progress || 0}
+                        sx={{
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                          '& .MuiLinearProgress-bar': {
+                            backgroundColor: completed
+                              ? '#10B981'
+                              : 'rgb(96, 165, 250)',
+                            borderRadius: 4,
+                          },
+                        }}
+                      />
                       <Typography
                         variant='body2'
-                        sx={{ color: 'rgb(156, 163, 175)' }}>
-                        Added 1 day ago
+                        sx={{
+                          color: 'rgb(156, 163, 175)',
+                          textAlign: 'right',
+                          mt: 1,
+                        }}>
+                        {completed ? 100 : selectedTask?.progress || 0}%
                       </Typography>
                     </Box>
-                  </Box>
-                </Box>
-              ) : (
-                <Typography sx={{ color: 'rgb(156, 163, 175)' }}>
-                  No attachments yet
-                </Typography>
-              )}
-            </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </Box>
 
-            {/* Progress */}
-            <Box>
-              <Box
-                sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <Requirements sx={{ color: 'rgb(156, 163, 175)' }} />
-                <Typography sx={{ color: 'white' }}>Progress</Typography>
-              </Box>
-              <Box sx={{ mb: 2 }}>
-                <LinearProgress
-                  variant='determinate'
-                  value={
-                    selectedTask?.progress
-                      ? Math.round(selectedTask?.progress / 100) * 100
-                      : 0
+          {/* Right Sidebar - Collapsible on mobile */}
+          {!isMobile && (
+            <Box
+              sx={{
+                width: { sm: '200px', md: '240px' },
+                borderLeft: '1px solid rgba(75, 85, 99, 0.5)',
+                p: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+              }}>
+              <ActionButton startIcon={<Leave />}>Leave</ActionButton>
+              <ActionButton
+                startIcon={<Members />}
+                onClick={() => setAssignUserModalOpen(true)}>
+                Members
+              </ActionButton>
+              <ActionButton startIcon={<Labels />}>Labels</ActionButton>
+              <ActionButton startIcon={<Requirements />}>
+                Requirements
+              </ActionButton>
+              <ActionButton startIcon={<AttachFile />}>Attachment</ActionButton>
+              <ActionButton
+                startIcon={<DateIcon />}
+                onClick={() => {
+                  if (!startDate && !endDate) {
+                    setStartDate(new Date());
+                    setDueDate(new Date());
+                    handleDateChange(selectedTask._id, 'startDate', new Date());
+                    handleDateChange(selectedTask._id, 'endDate', new Date());
                   }
-                  sx={{
-                    backgroundColor: 'rgba(31, 41, 55, 0.5)',
-                    '& .MuiLinearProgress-bar': {
-                      backgroundColor: 'rgb(96, 165, 250)', // text-blue-400
-                    },
-                  }}
-                />
-                <Typography
-                  variant='body2'
-                  sx={{
-                    color: 'rgb(156, 163, 175)',
-                    textAlign: 'right',
-                    mt: 0.5,
-                  }}>
-                  {selectedTask?.progress
-                    ? Math.round(selectedTask?.progress / 100) * 100
-                    : 0}
-                  %
-                </Typography>
-              </Box>
-              {/* Requirements List */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {selectedTask?.requirements?.map((requirement, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      backgroundColor: 'rgba(31, 41, 55, 0.5)',
-                      borderRadius: 1,
-                      p: 2,
-                    }}>
-                    <Typography sx={{ color: 'white' }}>
-                      {requirement}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
+                }}>
+                Set Dates
+              </ActionButton>
+              <ActionButton
+                startIcon={<Trash />}
+                onClick={() => onDeleteTask(selectedTask._id)}
+                sx={{
+                  backgroundColor: 'rgb(220, 38, 38)',
+                  marginTop: 'auto',
+                  '&:hover': { backgroundColor: 'rgb(185, 28, 28)' },
+                }}>
+                Delete
+              </ActionButton>
             </Box>
-          </Box>
-
-          {/* Right Sidebar */}
-          <Box
-            sx={{
-              width: 240,
-              borderLeft: '1px solid rgba(75, 85, 99, 0.5)',
-              p: 2,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1,
-            }}>
-            <Button
-              startIcon={<Leave />}
-              sx={{
-                backgroundColor: 'rgba(31, 41, 55, 0.5)',
-                color: 'white',
-                '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
-              }}>
-              Leave
-            </Button>
-            <Button
-              startIcon={<Members />}
-              sx={{
-                backgroundColor: 'rgba(31, 41, 55, 0.5)',
-                color: 'white',
-                '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
-              }}>
-              Members
-            </Button>
-            <Button
-              startIcon={<Labels />}
-              sx={{
-                backgroundColor: 'rgba(31, 41, 55, 0.5)',
-                color: 'white',
-                '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
-              }}>
-              Labels
-            </Button>
-            <Button
-              startIcon={<Requirements />}
-              sx={{
-                backgroundColor: 'rgba(31, 41, 55, 0.5)',
-                color: 'white',
-                '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
-              }}>
-              Requirements
-            </Button>
-            <Button
-              startIcon={<AttachFile />}
-              sx={{
-                backgroundColor: 'rgba(31, 41, 55, 0.5)',
-                color: 'white',
-                '&:hover': { backgroundColor: 'rgba(31, 41, 55, 0.7)' },
-              }}>
-              Attachment
-            </Button>
-            <Button
-              startIcon={<Trash />}
-              sx={{
-                backgroundColor: 'rgb(220, 38, 38)', // bg-red-600
-                color: 'white',
-                '&:hover': { backgroundColor: 'rgb(185, 28, 28)' }, // bg-red-700
-                mt: 'auto',
-              }}>
-              Delete
-            </Button>
-          </Box>
+          )}
         </Box>
       </Box>
+
+      <AssignUserModal
+        open={assignUserModalOpen}
+        onClose={() => setAssignUserModalOpen(false)}
+        onAssign={(userId) => {
+          const data = {
+            userId,
+          };
+          handleAssign(selectedTask._id, data);
+        }}
+      />
+
+      <Menu
+        anchorEl={listMenuAnchor}
+        open={Boolean(listMenuAnchor)}
+        onClose={() => setListMenuAnchor(null)}>
+        <MenuItem
+          onClick={() => {
+            handleStatusChange(selectedTask._id, 'pending');
+            setListMenuAnchor(null);
+          }}>
+          Pending
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleStatusChange(selectedTask._id, 'in-progress');
+            setListMenuAnchor(null);
+          }}>
+          In Progress
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleStatusChange(selectedTask._id, 'completed');
+            setCompleted(true);
+            setListMenuAnchor(null);
+          }}>
+          Completed
+        </MenuItem>
+      </Menu>
     </StyledDialog>
   );
 };

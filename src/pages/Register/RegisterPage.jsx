@@ -167,9 +167,9 @@ const RegisterPage = () => {
   );
 
   return (
-    <Layout className='min-h-screen bg-gray-900'>
+    <Layout className='min-h-screen bg-gray-900 md:fixed w-full'>
       {/* Navbar */}
-      <nav className='w-full backdrop-blur-md bg-black/20 shadow-sm sticky top-0 z-50'>
+      <nav className='w-full px-6 backdrop-blur-md bg-black/20 shadow-sm sticky top-0 z-50'>
         <div className='container mx-auto px-6 py-4 flex justify-between items-center'>
           <img
             className='h-8'

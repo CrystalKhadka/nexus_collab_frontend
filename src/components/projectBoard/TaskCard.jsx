@@ -21,10 +21,10 @@ const availableLabels = [
   { id: 5, color: '#a855f7', name: 'Bug' }, // purple-500
 ];
 
-const TaskCard = ({ task, index, listId, onClick }) => (
+const TaskCard = ({ task, index, listId, onClick, onDelete }) => (
   <Draggable
     draggableId={task._id}
-    index={index}>
+    index={listId}>
     {(provided, snapshot) => (
       <Box
         ref={provided.innerRef}
@@ -74,7 +74,7 @@ const TaskCard = ({ task, index, listId, onClick }) => (
               <IconButton
                 onClick={(e) => {
                   e.stopPropagation();
-                  // Implement delete functionality
+                  onDelete(task._id);
                 }}
                 sx={{
                   color: 'grey.400',
@@ -143,12 +143,18 @@ const TaskCard = ({ task, index, listId, onClick }) => (
                       },
                     }}>
                     {task.members.map((member) => (
-                      <Avatar
-                        key={member.id}
-                        src={member.avatar}
-                        alt={member.name}
-                        title={member.name}
-                      />
+                      <>
+                        <Avatar
+                          key={member._id}
+                          src={`http://localhost:5000/profilePic/${member.image}`}
+                          alt={member.name}
+                          title={
+                            member.firstName.slice(0, 1) +
+                            '' +
+                            member.lastName.slice(0, 1)
+                          }
+                        />
+                      </>
                     ))}
                   </AvatarGroup>
                 ) : (

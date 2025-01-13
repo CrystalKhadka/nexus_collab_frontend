@@ -12,8 +12,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import Navbar from '../../components/Navbar';
-import { Sidebar } from '../../components/Sidebar';
 
 const { Content } = Layout;
 const { RangePicker } = DatePicker;
@@ -210,9 +208,7 @@ const TimelinePage = () => {
 
   return (
     <Layout className='flex h-screen bg-gray-900 '>
-      <Navbar />
-      <Layout className='mt-16 bg-gray-900 overflow-auto'>
-        <Sidebar />
+      <Layout className=' bg-gray-900 overflow-auto'>
         <Content className='p-6 bg-gray-800/50'>
           <div className='max-w-7xl mx-auto space-y-6'>
             {/* Header */}

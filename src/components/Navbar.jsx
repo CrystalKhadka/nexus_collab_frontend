@@ -1,47 +1,211 @@
-// Navbar.jsx
-import { motion } from 'framer-motion';
-import { Bell, ChevronDown } from 'lucide-react';
-import React from 'react';
+import {
+  FavoriteBorder,
+  KeyboardArrowDown,
+  LogoutOutlined,
+  MailOutline,
+  NotificationsOutlined,
+  PersonOutline,
+} from '@mui/icons-material';
+import {
+  AppBar,
+  Avatar,
+  Badge,
+  Box,
+  Divider,
+  IconButton,
+  Menu,
+  MenuItem,
+  Toolbar,
+  Typography,
+} from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSocket } from './socketContext/SocketContext';
 
 const Navbar = () => {
+  const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+  const { socket } = useSocket();
+
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const menuItems = [
+    {
+      key: 'profile',
+      icon: <PersonOutline sx={{ color: 'text.secondary' }} />,
+      label: 'Profile',
+      onClick: () => {
+        navigate('/profile');
+        handleClose();
+      },
+    },
+    {
+      key: 'invitations',
+      icon: <MailOutline sx={{ color: 'text.secondary' }} />,
+      label: 'Invitations',
+      onClick: () => {
+        navigate('/invitations');
+        handleClose();
+      },
+    },
+    {
+      key: 'favorites',
+      icon: <FavoriteBorder sx={{ color: 'text.secondary' }} />,
+      label: 'Favorites',
+      onClick: () => {
+        navigate('/favorites');
+        handleClose();
+      },
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined sx={{ color: 'text.secondary' }} />,
+      label: 'Logout',
+      onClick: () => {
+        localStorage.removeItem('token');
+        handleClose();
+        window.location.href = '/';
+      },
+    },
+  ];
+
+  const handleNotificatonClicked = () => {
+    const data = {
+      data: 'clicked',
+      senderId: '67761774c4b1d77537a07e66',
+    };
+    socket.emit('notification', data);
+  };
+
+  useEffect(() => {
+    socket.on('notificationMessage', (data) => {
+      console.log(data);
+    });
+  }, []);
+
   return (
-    <motion.nav
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      className='fixed  top-0 w-full bg-gray-900/90 backdrop-blur-xl border-b border-white/10 z-50'>
-      <div className='container mx-auto px-8 py-4'>
-        <div className='flex justify-between items-center'>
-          <div className='flex items-center gap-8'>
-            <img
-              className='h-8'
-              src='/images/logo1.png'
-              alt='Logo'
+    <AppBar
+      className='sticky top-0 z-50 h-16'
+      position='fixed'
+      sx={{
+        bgcolor: 'rgba(17, 24, 39, 1)',
+        backdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      }}>
+      <Toolbar sx={{ justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <img
+            src='/images/logo1.png'
+            alt='Logo'
+            style={{
+              height: '32px',
+              cursor: 'pointer',
+              '&:hover': { opacity: 0.8 },
+            }}
+            onClick={() => navigate('/dashboard')}
+          />
+        </Box>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <IconButton
+            size='large'
+            color='inherit'
+            onClick={handleNotificatonClicked}>
+            <Badge
+              badgeContent={3}
+              color='error'>
+              <NotificationsOutlined />
+            </Badge>
+          </IconButton>
+
+          <Box
+            onClick={handleClick}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              cursor: 'pointer',
+              bgcolor: 'rgba(31, 41, 55, 0.5)',
+              '&:hover': { bgcolor: 'rgba(31, 41, 55, 0.8)' },
+              borderRadius: 3,
+              padding: '8px 16px',
+              transition: 'all 0.2s ease-in-out',
+            }}>
+            <Avatar
+              src='/images/download.jpg'
+              sx={{
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                width: 40,
+                height: 40,
+              }}
             />
-          </div>
+            <Typography
+              sx={{
+                display: { xs: 'none', sm: 'block' },
+                color: 'white',
+                fontWeight: 500,
+              }}>
+              Crystal Khadka
+            </Typography>
+            <KeyboardArrowDown
+              sx={{
+                color: 'text.secondary',
+                fontSize: '0.875rem',
+              }}
+            />
+          </Box>
 
-          <div className='flex items-center gap-6'>
-            <div className='relative'>
-              <Bell className='w-5 h-5 text-gray-300 hover:text-white cursor-pointer transition-colors' />
-              <span className='absolute -top-1 -right-1 bg-red-500 text-xs w-4 h-4 rounded-full flex items-center justify-center text-white font-medium'>
-                3
-              </span>
-            </div>
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              className='flex items-center gap-3 bg-gray-800/50 hover:bg-gray-800 px-4 py-2 rounded-xl transition-colors'>
-              <img
-                src='/images/download.jpg'
-                alt='User Avatar'
-                className='w-8 h-8 rounded-full border border-white/10'
-              />
-              <span className='text-white font-medium'>Crystal Khadka</span>
-              <ChevronDown className='w-4 h-4 text-gray-400' />
-            </motion.button>
-          </div>
-        </div>
-      </div>
-    </motion.nav>
+          <Menu
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleClose}
+            PaperProps={{
+              sx: {
+                bgcolor: 'rgb(31, 41, 55)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 3,
+                minWidth: 200,
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+              },
+            }}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
+            {menuItems.map((item, index) => (
+              <React.Fragment key={item.key}>
+                <MenuItem
+                  onClick={item.onClick}
+                  sx={{
+                    display: 'flex',
+                    gap: 1.5,
+                    color: 'text.secondary',
+                    '&:hover': {
+                      bgcolor: 'rgba(255, 255, 255, 0.05)',
+                      '& .MuiSvgIcon-root, & .MuiTypography-root': {
+                        color: 'white',
+                      },
+                    },
+                  }}>
+                  {item.icon}
+                  <Typography>{item.label}</Typography>
+                </MenuItem>
+                {index === menuItems.length - 2 && (
+                  <Divider
+                    sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }}
+                  />
+                )}
+              </React.Fragment>
+            ))}
+          </Menu>
+        </Box>
+      </Toolbar>
+    </AppBar>
   );
 };
 

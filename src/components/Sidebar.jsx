@@ -10,16 +10,26 @@ import {
   Timer,
   Users,
 } from 'lucide-react';
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
+import { getProjectByIdApi } from '../apis/Api';
 
 // SidebarLink Component
-const SidebarLink = ({ icon: Icon, text, to, collapsed }) => {
+const SidebarLink = ({ icon: Icon, text, to, collapsed, currentProject }) => {
   const location = useLocation();
-  const isActive = location.pathname === to;
+  const isActive = location.pathname.startsWith(to);
+  const [projectId, setProjectId] = useState(null);
+
+  useEffect(() => {
+    if (currentProject?._id) {
+      setProjectId(currentProject._id);
+    }
+  }, [currentProject]);
+
+  const linkTo = projectId ? `${to}/${projectId}` : to;
 
   return (
-    <Link to={to}>
+    <Link to={linkTo}>
       <motion.div
         whileHover={{ x: 5 }}
         className={`flex items-center gap-3 ${
@@ -48,9 +58,9 @@ const ProjectHeader = ({ collapsed, currentProject }) => (
             {currentProject?.name || 'Project Name'}
           </h1>
           <p className='text-xs text-gray-400'>
-            {currentProject?.owner.firstName +
-              ' ' +
-              currentProject?.owner.lastName || 'Project Owner'}
+            {currentProject?.owner
+              ? `${currentProject.owner.firstName} ${currentProject.owner.lastName}`
+              : 'Project Owner'}
           </p>
         </div>
       )}
@@ -60,7 +70,7 @@ const ProjectHeader = ({ collapsed, currentProject }) => (
 
 // Navigation Links Configuration
 const navigationLinks = [
-  { icon: LayoutDashboard, text: 'Boards', path: '/board/:id' },
+  { icon: LayoutDashboard, text: 'Boards', path: '/board' },
   { icon: MessageSquare, text: 'Chat', path: '/chat' },
   { icon: Users, text: 'Members', path: '/members' },
   { icon: Settings, text: 'Settings', path: '/settings' },
@@ -72,15 +82,24 @@ const additionalLinks = [
 ];
 
 // Sidebar Component
-const Sidebar = ({ currentProject }) => {
-  const [collapsed, setCollapsed] = useState(false);
+const Sidebar = () => {
+  const [collapsed, setCollapsed] = useState(true);
+  const [currentProject, setCurrentProject] = useState(null);
+
+  const params = useParams();
+
+  useEffect(() => {
+    getProjectByIdApi(params.id).then((response) => {
+      setCurrentProject(response.data.data);
+    });
+  }, [params]);
 
   return (
     <Sider
       collapsible
       collapsed={collapsed}
       onCollapse={(value) => setCollapsed(value)}
-      className='bg-gray-800/50 backdrop-blur-md border-r border-white/10 transition-all duration-300  overflow-hidden'
+      className='bg-gray-800/50 backdrop-blur-md border-r border-white/10 transition-all duration-300 overflow-hidden'
       width={240}
       collapsedWidth={80}
       trigger={
@@ -109,6 +128,7 @@ const Sidebar = ({ currentProject }) => {
               text={link.text}
               to={link.path}
               collapsed={collapsed}
+              currentProject={currentProject}
             />
           ))}
         </div>
@@ -125,11 +145,10 @@ const Sidebar = ({ currentProject }) => {
               text={link.text}
               to={link.path}
               collapsed={collapsed}
+              currentProject={currentProject}
             />
           ))}
         </div>
-
-        {/* Bottom Section */}
       </div>
     </Sider>
   );
