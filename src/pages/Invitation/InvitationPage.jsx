@@ -13,10 +13,10 @@ import {
   Card,
   CardContent,
   CardHeader,
-  Chip,
   Container,
   Grid,
   InputAdornment,
+  Pagination,
   Snackbar,
   Stack,
   TextField,
@@ -32,10 +32,16 @@ import {
 
 const InvitationPage = () => {
   const [invitations, setInvitations] = useState([]);
+  const [filteredInvitations, setFilteredInvitations] = useState([]);
+  const [invitationSearchTerm, setInvitationSearchTerm] = useState('');
+  const [invitationPage, setInvitationPage] = useState(1);
+  const invitationsPerPage = 5;
 
   const [projects, setProjects] = useState([]);
-
+  const [projectPage, setProjectPage] = useState(1);
+  const projectsPerPage = 4;
   const [searchTerm, setSearchTerm] = useState('');
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -46,6 +52,14 @@ const InvitationPage = () => {
     getInvitations();
     searchProjects(searchTerm);
   }, [searchTerm]);
+
+  useEffect(() => {
+    const filtered = invitations.filter((invitation) =>
+      invitation.name.toLowerCase().includes(invitationSearchTerm.toLowerCase())
+    );
+    setFilteredInvitations(filtered);
+    setInvitationPage(1); // Reset to first page when search changes
+  }, [invitationSearchTerm, invitations]);
 
   const getInvitations = () => {
     getInvitedProjectsApi()
@@ -108,6 +122,7 @@ const InvitationPage = () => {
     searchProjectsApi(search)
       .then((res) => {
         setProjects(res.data.projects);
+        setProjectPage(1); // Reset to first page when search changes
       })
       .catch((err) => {
         console.log(err);
@@ -122,22 +137,21 @@ const InvitationPage = () => {
     }
   };
 
-  const getStatusChip = (status) => {
-    const statusProps = {
-      pending: { color: 'warning' },
-      accepted: { color: 'success' },
-      held: { color: 'info' },
-      rejected: { color: 'error' },
-    }[status];
+  // Pagination calculations
+  const invitationStartIndex = (invitationPage - 1) * invitationsPerPage;
+  const invitationEndIndex = invitationStartIndex + invitationsPerPage;
+  const currentInvitations = filteredInvitations.slice(
+    invitationStartIndex,
+    invitationEndIndex
+  );
+  const totalInvitationPages = Math.ceil(
+    filteredInvitations.length / invitationsPerPage
+  );
 
-    return (
-      <Chip
-        {...statusProps}
-        label={status.charAt(0).toUpperCase() + status.slice(1)}
-        size='small'
-      />
-    );
-  };
+  const projectStartIndex = (projectPage - 1) * projectsPerPage;
+  const projectEndIndex = projectStartIndex + projectsPerPage;
+  const currentProjects = projects.slice(projectStartIndex, projectEndIndex);
+  const totalProjectPages = Math.ceil(projects.length / projectsPerPage);
 
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
@@ -146,103 +160,141 @@ const InvitationPage = () => {
         sx={{ py: 3 }}>
         {/* Invitations Section */}
         <section>
-          <Typography
-            variant='h4'
-            gutterBottom
-            sx={{ color: 'common.white' }}>
-            Your Invitations
-          </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 2,
+            }}>
+            <Typography
+              variant='h4'
+              sx={{ color: 'common.white' }}>
+              Your Invitations
+            </Typography>
+            <TextField
+              placeholder='Search invitations...'
+              value={invitationSearchTerm}
+              onChange={(e) => setInvitationSearchTerm(e.target.value)}
+              sx={{ width: 300 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position='start'>
+                    <Search sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
 
-          {invitations.length < 0 ? (
+          {currentInvitations.length === 0 ? (
             <Typography
               variant='h6'
               gutterBottom
               sx={{ color: 'common.white' }}>
-              You have no invitations
+              No invitations found
             </Typography>
           ) : (
-            <Stack
-              spacing={2}
-              sx={{ mb: 4 }}>
-              {invitations.map((invitation) => (
-                <Card
-                  key={invitation.id}
-                  sx={{
-                    opacity: invitation.status !== 'pending' ? 0.75 : 1,
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                  }}>
-                  <CardContent>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}>
-                      <Stack spacing={1}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                          }}>
-                          <Typography
-                            variant='h6'
-                            sx={{ color: 'common.white' }}>
-                            {invitation.name}
+            <>
+              <Stack
+                spacing={2}
+                sx={{ mb: 2 }}>
+                {currentInvitations.map((invitation) => (
+                  <Card
+                    key={invitation.id}
+                    sx={{
+                      opacity: invitation.status !== 'pending' ? 0.75 : 1,
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                    }}>
+                    <CardContent>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}>
+                        <Stack spacing={1}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}>
+                            <Typography
+                              variant='h6'
+                              sx={{ color: 'common.white' }}>
+                              {invitation.name}
+                            </Typography>
+                            {invitation.isPrivate ? (
+                              <Lock
+                                fontSize='small'
+                                sx={{ color: 'text.secondary' }}
+                              />
+                            ) : (
+                              <LockOpen
+                                fontSize='small'
+                                sx={{ color: 'text.secondary' }}
+                              />
+                            )}
+                          </Box>
+                          <Typography color='text.secondary'>
+                            Role: Member
                           </Typography>
-                          {invitation.isPrivate ? (
-                            <Lock
-                              fontSize='small'
-                              sx={{ color: 'text.secondary' }}
-                            />
-                          ) : (
-                            <LockOpen
-                              fontSize='small'
-                              sx={{ color: 'text.secondary' }}
-                            />
-                          )}
-                        </Box>
-                        <Typography color='text.secondary'>
-                          Role: Member
-                        </Typography>
-                      </Stack>
+                        </Stack>
 
-                      <Stack
-                        direction='row'
-                        spacing={1}>
-                        <Button
-                          variant='contained'
-                          color='success'
-                          startIcon={<CheckCircleOutline />}
-                          onClick={() =>
-                            handleInvitation(invitation._id, 'accepted')
-                          }>
-                          Accept
-                        </Button>
-                        <Button
-                          variant='outlined'
-                          startIcon={<Schedule />}
-                          onClick={() =>
-                            handleInvitation(invitation._id, 'held')
-                          }
-                          sx={{ borderColor: 'rgba(255, 255, 255, 0.23)' }}>
-                          Hold
-                        </Button>
-                        <Button
-                          variant='outlined'
-                          color='error'
-                          startIcon={<Close />}
-                          onClick={() =>
-                            handleInvitation(invitation._id, 'rejected')
-                          }>
-                          Reject
-                        </Button>
-                      </Stack>
-                    </Box>
-                  </CardContent>
-                </Card>
-              ))}
-            </Stack>
+                        <Stack
+                          direction='row'
+                          spacing={1}>
+                          <Button
+                            variant='contained'
+                            color='success'
+                            startIcon={<CheckCircleOutline />}
+                            onClick={() =>
+                              handleInvitation(invitation._id, 'accepted')
+                            }>
+                            Accept
+                          </Button>
+                          <Button
+                            variant='outlined'
+                            startIcon={<Schedule />}
+                            onClick={() =>
+                              handleInvitation(invitation._id, 'held')
+                            }
+                            sx={{ borderColor: 'rgba(255, 255, 255, 0.23)' }}>
+                            Hold
+                          </Button>
+                          <Button
+                            variant='outlined'
+                            color='error'
+                            startIcon={<Close />}
+                            onClick={() =>
+                              handleInvitation(invitation._id, 'rejected')
+                            }>
+                            Reject
+                          </Button>
+                        </Stack>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Stack>
+              {totalInvitationPages > 1 && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    mt: 2,
+                    mb: 4,
+                  }}>
+                  <Pagination
+                    count={totalInvitationPages}
+                    page={invitationPage}
+                    onChange={(e, page) => setInvitationPage(page)}
+                    color='primary'
+                  />
+                </Box>
+              )}
+            </>
           )}
         </section>
 
@@ -263,9 +315,7 @@ const InvitationPage = () => {
             <TextField
               placeholder='Search projects...'
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-              }}
+              onChange={(e) => setSearchTerm(e.target.value)}
               sx={{ width: 300 }}
               InputProps={{
                 startAdornment: (
@@ -280,7 +330,7 @@ const InvitationPage = () => {
           <Grid
             container
             spacing={2}>
-            {projects.map((project) => (
+            {currentProjects.map((project) => (
               <Grid
                 item
                 xs={12}
@@ -290,11 +340,7 @@ const InvitationPage = () => {
                   <CardHeader
                     title={
                       <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                        }}>
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Typography
                           variant='h6'
                           sx={{ color: 'common.white' }}>
@@ -335,6 +381,17 @@ const InvitationPage = () => {
               </Grid>
             ))}
           </Grid>
+
+          {totalProjectPages > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Pagination
+                count={totalProjectPages}
+                page={projectPage}
+                onChange={(e, page) => setProjectPage(page)}
+                color='primary'
+              />
+            </Box>
+          )}
         </section>
 
         <Snackbar

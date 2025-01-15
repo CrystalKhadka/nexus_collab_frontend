@@ -1,4 +1,15 @@
 import {
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
   Alert,
   Box,
   Button,
@@ -9,7 +20,6 @@ import {
 } from '@mui/material';
 import { MoreHorizontal, Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { Droppable } from 'react-beautiful-dnd';
 import { createTaskApi } from '../../apis/Api';
 import TaskCard from './TaskCard';
 
@@ -20,7 +30,8 @@ const TaskList = ({
   projectId,
   searchQuery,
   onTaskClick,
-  onDeleteTask
+  onDeleteTask,
+  onMoveList,
 }) => {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [taskTitle, setTaskTitle] = useState('');
@@ -29,6 +40,14 @@ const TaskList = ({
     message: '',
     severity: 'success',
   });
+
+  // Set up DnD sensors
+  const sensors = useSensors(
+    // useSensor(PointerSensor),
+    // useSensor(KeyboardSensor, {
+    //   coordinateGetter: sortableKeyboardCoordinates,
+    // })
+  );
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
@@ -40,6 +59,32 @@ const TaskList = ({
       message,
       severity,
     });
+  };
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      const oldIndex = list.tasks.findIndex((task) => task._id === active.id);
+      const newIndex = list.tasks.findIndex((task) => task._id === over.id);
+
+      const updatedTasks = [...list.tasks];
+      const [movedTask] = updatedTasks.splice(oldIndex, 1);
+      updatedTasks.splice(newIndex, 0, movedTask);
+
+      const updatedLists = lists.map((l) => {
+        if (l._id === list._id) {
+          return {
+            ...l,
+            tasks: updatedTasks,
+          };
+        }
+        return l;
+      });
+
+      setLists(updatedLists);
+      // Here you would typically call an API to update the task order
+    }
   };
 
   const handleAddTask = async (e) => {
@@ -126,81 +171,77 @@ const TaskList = ({
         </Box>
       </Box>
 
-      <Droppable droppableId={list._id}>
-        {(provided) => (
-          <Box
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-            sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {list.tasks
-              .filter((task) =>
-                task.name.toLowerCase().includes(searchQuery.toLowerCase())
-              )
-              .map((task, index) => (
-                <TaskCard
-                  key={task._id}
-                  task={task}
-                  index={index}
-                  listId={list._id}
-                  onClick={() => onTaskClick(task)}
-                  onDelete={onDeleteTask}
-                />
-              ))}
-            {provided.placeholder}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <SortableContext
+          items={list.tasks.map((task) => task._id)}
+          strategy={verticalListSortingStrategy}>
+          {list.tasks
+            .filter((task) =>
+              task?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .map((task, index) => (
+              <TaskCard
+                key={task._id}
+                task={task}
+                index={index}
+                listId={list._id}
+                onClick={() => onTaskClick(task)}
+                onDelete={onDeleteTask}
+              />
+            ))}
+        </SortableContext>
 
-            {isAddingTask ? (
-              <form
-                onSubmit={handleAddTask}
-                className='w-full flex gap-2'>
-                <TextField
-                  value={taskTitle}
-                  onChange={(e) => setTaskTitle(e.target.value)}
-                  placeholder='Enter task title'
-                  sx={{
-                    flexGrow: 1,
-                    '& .MuiInputBase-root': {
-                      color: 'white',
-                      backgroundColor: 'rgba(31, 41, 55, 0.5)',
-                    },
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      border: 'none',
-                    },
-                  }}
-                  autoFocus
-                />
-                <Button
-                  onClick={() => {
-                    setIsAddingTask(false);
-                    setTaskTitle('');
-                  }}
-                  variant='contained'
-                  color='error'
-                  sx={{ minWidth: 'auto', p: 1 }}>
-                  <X className='w-4 h-4' />
-                </Button>
-              </form>
-            ) : (
-              <Button
-                onClick={() => setIsAddingTask(true)}
-                sx={{
-                  width: '100%',
-                  py: 1,
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  color: 'grey.400',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    color: 'white',
-                  },
-                  display: 'flex',
-                  gap: 1,
-                }}>
-                <Plus className='w-5 h-5' />
-                Add Card
-              </Button>
-            )}
-          </Box>
+        {isAddingTask ? (
+          <form
+            onSubmit={handleAddTask}
+            className='w-full flex gap-2'>
+            <TextField
+              value={taskTitle}
+              onChange={(e) => setTaskTitle(e.target.value)}
+              placeholder='Enter task title'
+              sx={{
+                flexGrow: 1,
+                '& .MuiInputBase-root': {
+                  color: 'white',
+                  backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  border: 'none',
+                },
+              }}
+              autoFocus
+            />
+            <Button
+              onClick={() => {
+                setIsAddingTask(false);
+                setTaskTitle('');
+              }}
+              variant='contained'
+              color='error'
+              sx={{ minWidth: 'auto', p: 1 }}>
+              <X className='w-4 h-4' />
+            </Button>
+          </form>
+        ) : (
+          <Button
+            onClick={() => setIsAddingTask(true)}
+            sx={{
+              width: '100%',
+              py: 1,
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              color: 'grey.400',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: 'white',
+              },
+              display: 'flex',
+              gap: 1,
+            }}>
+            <Plus className='w-5 h-5' />
+            Add Card
+          </Button>
         )}
-      </Droppable>
+      </Box>
 
       <Snackbar
         open={snackbar.open}

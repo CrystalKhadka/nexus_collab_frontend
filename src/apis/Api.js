@@ -101,12 +101,20 @@ export const addListToProjectApi = ({ data, id }) =>
 export const rejectProjectInviteApi = ({ data, id }) =>
   Api.put('/project/reject_invite/' + id, data, jsonConfig);
 
+// getMembersRoleAndTask
+export const getMembersRoleAndTaskApi = (id) =>
+  Api.get(`/project/get_members_role_task/${id}`, jsonConfig);
+
 // List Apis
 export const createListApi = (data) =>
   Api.post('/list/create', data, jsonConfig);
 
 export const getListsByProjectIdApi = (id) =>
   Api.get(`/list/get_all/${id}`, jsonConfig);
+
+// moveList
+export const moveListApi = (id, data) =>
+  Api.put('/list/move/' + id, data, jsonConfig);
 
 // Task Apis
 export const createTaskApi = (data) =>
@@ -138,6 +146,34 @@ export const deleteTaskApi = (id) =>
 // assignTask
 export const assignTaskApi = (id, data) =>
   Api.put(`/task/assign/${id}`, data, jsonConfig);
+
+// assign_date
+export const assignDateApi = (id, data) =>
+  Api.put(`/task/assign_date/${id}`, data, jsonConfig);
+
+// change_priority
+export const changeTaskPriorityApi = (id, data) =>
+  Api.put(`/task/change_priority/${id}`, data, jsonConfig);
+
+// change_label
+export const changeTaskLabelApi = (id, data) =>
+  Api.put(`/task/change_label/${id}`, data, jsonConfig);
+
+// update_cover_image
+export const updateCoverImageApi = (id, data) =>
+  Api.put('/task/update_cover_image/' + id, data, config);
+
+// get_by_project
+export const getTasksByProjectIdApi = (id) =>
+  Api.get(`/task/get_by_project/${id}`, jsonConfig);
+
+// add_requirement
+export const addRequirementApi = (id, data) =>
+  Api.put(`/task/add_requirement/${id}`, data, jsonConfig);
+
+// change_status
+export const changeTaskStatusApi = (id, data) =>
+  Api.put(`/task/change_status/${id}`, data, jsonConfig);
 
 // Channels
 

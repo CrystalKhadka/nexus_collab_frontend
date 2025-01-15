@@ -1,47 +1,28 @@
 import {
-  Badge,
-  Button,
-  DatePicker,
-  Form,
-  Input,
-  Layout,
-  Modal,
-  Select,
-  Tooltip,
-} from 'antd';
+  Box,
+  Chip,
+  IconButton,
+  Tooltip as MuiTooltip,
+  Paper,
+  Typography,
+} from '@mui/material';
 import dayjs from 'dayjs';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import React, { useState } from 'react';
-import { Sidebar } from '../../components/Sidebar';
-
-const { Content } = Layout;
-const { Option } = Select;
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { getTasksByProjectIdApi } from '../../apis/Api';
 
 const CalendarPage = () => {
   const [currentDate, setCurrentDate] = useState(dayjs());
   const [selectedDate, setSelectedDate] = useState(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [modalType, setModalType] = useState('task'); // 'task' or 'meeting'
-  const [form] = Form.useForm();
+  const [tasks, setTasks] = useState([]);
+  const { id } = useParams();
 
-  // Sample data - replace with your actual data
-  const [tasks] = useState([
-    {
-      id: 1,
-      title: 'Design Homepage',
-      startDate: '2024-12-28',
-      endDate: '2024-12-31',
-      type: 'task',
-      priority: 'high',
-    },
-    {
-      id: 2,
-      title: 'Team Standup',
-      startDate: '2024-12-30',
-      type: 'meeting',
-      time: '10:00 AM',
-    },
-  ]);
+  useEffect(() => {
+    getTasksByProjectIdApi(id)
+      .then((res) => setTasks(res.data.data))
+      .catch((err) => console.error(err));
+  }, [id]);
 
   const getDaysInMonth = (date) => {
     const year = date.year();
@@ -54,7 +35,6 @@ const CalendarPage = () => {
     const calendar = [];
     let week = new Array(7).fill(null);
 
-    // Add empty days for previous month
     for (let i = 0; i < startingDay; i++) {
       week[i] = {
         date: firstDay.subtract(startingDay - i, 'day'),
@@ -62,7 +42,6 @@ const CalendarPage = () => {
       };
     }
 
-    // Add days for current month
     for (let day = 1; day <= daysInMonth; day++) {
       const date = dayjs(new Date(year, month, day));
       const dayOfWeek = date.day();
@@ -78,7 +57,6 @@ const CalendarPage = () => {
       }
     }
 
-    // Fill in the rest of the last week if needed
     if (calendar[calendar.length - 1].some((day) => day === null)) {
       let lastWeek = calendar[calendar.length - 1];
       let nextMonth = 1;
@@ -96,15 +74,34 @@ const CalendarPage = () => {
   };
 
   const getEventsForDate = (date) => {
+    if (!tasks) return [];
+
     return tasks.filter((task) => {
-      if (task.type === 'meeting') {
-        return dayjs(task.startDate).isSame(date, 'day');
-      }
+      if (!task.startDate || !task.endDate) return false;
+
+      const taskStartDate = dayjs(task.startDate);
+      const taskEndDate = dayjs(task.endDate);
+      const currentDate = dayjs(date);
+
+      // Check if the current date falls between start and end dates (inclusive)
       return (
-        dayjs(task.startDate).isBefore(date, 'day') &&
-        dayjs(task.endDate).isAfter(date, 'day')
+        currentDate.isSame(taskStartDate, 'day') ||
+        currentDate.isSame(taskEndDate, 'day') ||
+        (currentDate.isAfter(taskStartDate, 'day') &&
+          currentDate.isBefore(taskEndDate, 'day'))
       );
     });
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high':
+        return 'bg-red-500/20 text-red-200';
+      case 'medium':
+        return 'bg-yellow-500/20 text-yellow-200';
+      default:
+        return 'bg-green-500/20 text-green-200';
+    }
   };
 
   const renderDateCell = (dayInfo) => {
@@ -113,207 +110,119 @@ const CalendarPage = () => {
     const isSelected = selectedDate && dayInfo.date.isSame(selectedDate, 'day');
 
     return (
-      <div
-        className={`h-32 p-2 border-r border-b border-white/10 transition-colors
+      <Box
+        onClick={() => setSelectedDate(dayInfo.date)}
+        className={`
+          min-h-[8rem] md:min-h-[10rem] p-2 border-r border-b border-gray-700
+          transition-all duration-200 cursor-pointer
           ${!dayInfo.isCurrentMonth ? 'bg-gray-800/50' : 'bg-gray-800/30'}
           ${isSelected ? 'bg-gray-700/50' : ''}
           ${isToday ? 'ring-2 ring-blue-500 ring-inset' : ''}
-        `}
-        onClick={() => setSelectedDate(dayInfo.date)}>
+          hover:bg-gray-700/40
+        `}>
         <div className='flex justify-between items-start'>
-          <span
+          <Typography
             className={`text-sm font-medium ${
               dayInfo.isCurrentMonth ? 'text-white' : 'text-gray-500'
             }`}>
             {dayInfo.date.date()}
-          </span>
+          </Typography>
           {events.length > 0 && (
-            <Badge
-              count={events.length}
-              className='mr-2'
+            <Chip
+              size='small'
+              label={events.length}
+              className='bg-blue-500/20 text-blue-200'
             />
           )}
         </div>
-        <div className='mt-2 space-y-1'>
+        <div className='mt-2 space-y-1 overflow-y-auto max-h-24'>
           {events.map((event) => (
-            <Tooltip
-              key={event.id}
-              title={event.title}>
+            <MuiTooltip
+              key={event._id}
+              title={
+                <div>
+                  <div>{event.name}</div>
+                  <div className='text-xs'>
+                    {dayjs(event.startDate).format('MMM D')} -{' '}
+                    {dayjs(event.endDate).format('MMM D')}
+                  </div>
+                </div>
+              }
+              arrow
+              placement='top'>
               <div
                 className={`
-                text-xs p-1 rounded truncate
-                ${
-                  event.type === 'meeting'
-                    ? 'bg-purple-500/20 text-purple-200'
-                    : ''
-                }
-                ${event.type === 'task' ? 'bg-blue-500/20 text-blue-200' : ''}
-              `}>
-                {event.title}
+                  text-xs p-1.5 rounded truncate
+                  ${getPriorityColor(event.priority)}
+                `}>
+                {event.name}
               </div>
-            </Tooltip>
+            </MuiTooltip>
           ))}
         </div>
-      </div>
+      </Box>
     );
-  };
-
-  const handlePrevMonth = () => {
-    setCurrentDate(currentDate.subtract(1, 'month'));
-  };
-
-  const handleNextMonth = () => {
-    setCurrentDate(currentDate.add(1, 'month'));
-  };
-
-  const handleAddNew = (type) => {
-    setModalType(type);
-    setIsModalVisible(true);
   };
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <Layout className='min-h-screen bg-gray-900 overflow-hidden'>
-      <Layout className=' bg-gray-900 '>
-       
-        <Content className='p-6 bg-gray-800/50 overflow-scroll'>
-          <div className='max-w-7xl mx-auto'>
-            {/* Calendar Header */}
-            <div className='flex justify-between items-center mb-6'>
-              <div className='flex items-center gap-4'>
-                <h1 className='text-2xl font-semibold text-white'>Calendar</h1>
-                <div className='flex items-center gap-2'>
-                  <Button
-                    icon={<ChevronLeft className='w-4 h-4' />}
-                    onClick={handlePrevMonth}
-                    className='border-white/10 bg-gray-800 text-white hover:bg-gray-700'
-                  />
-                  <span className='text-lg text-white font-medium'>
-                    {currentDate.format('MMMM YYYY')}
-                  </span>
-                  <Button
-                    icon={<ChevronRight className='w-4 h-4' />}
-                    onClick={handleNextMonth}
-                    className='border-white/10 bg-gray-800 text-white hover:bg-gray-700'
-                  />
-                </div>
-              </div>
-
-              <div className='flex gap-2'>
-                <Button
-                  icon={<Plus className='w-4 h-4' />}
-                  onClick={() => handleAddNew('task')}
-                  className='bg-blue-500 text-white border-none hover:bg-blue-600'>
-                  Add Task
-                </Button>
-                <Button
-                  icon={<Plus className='w-4 h-4' />}
-                  onClick={() => handleAddNew('meeting')}
-                  className='bg-purple-500 text-white border-none hover:bg-purple-600'>
-                  Add Meeting
-                </Button>
-              </div>
-            </div>
-
-            {/* Calendar Grid */}
-            <div className='bg-gray-800/30 rounded-lg border border-white/10'>
-              {/* Week Header */}
-              <div className='grid grid-cols-7'>
-                {weekDays.map((day) => (
-                  <div
-                    key={day}
-                    className='py-2 text-center border-b border-white/10'>
-                    <span className='text-sm font-medium text-gray-300'>
-                      {day}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Calendar Body */}
-              <div>
-                {getDaysInMonth(currentDate).map((week, weekIndex) => (
-                  <div
-                    key={weekIndex}
-                    className='grid grid-cols-7'>
-                    {week.map((day, dayIndex) => (
-                      <div key={`${weekIndex}-${dayIndex}`}>
-                        {renderDateCell(day)}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
+    <Box className='min-h-screen bg-gray-900 p-4 md:p-6'>
+      <Paper className='max-w-7xl mx-auto bg-gray-800/50 p-4 md:p-6 rounded-xl'>
+        <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4'>
+          <Typography
+            variant='h4'
+            className='text-white font-semibold'>
+            Calendar
+          </Typography>
+          <div className='flex items-center gap-2'>
+            <IconButton
+              onClick={() => setCurrentDate(currentDate.subtract(1, 'month'))}
+              className='text-white hover:bg-gray-700'>
+              <ChevronLeft className='w-5 h-5' />
+            </IconButton>
+            <Typography
+              variant='h6'
+              className='text-white font-medium px-2'>
+              {currentDate.format('MMMM YYYY')}
+            </Typography>
+            <IconButton
+              onClick={() => setCurrentDate(currentDate.add(1, 'month'))}
+              className='text-white hover:bg-gray-700'>
+              <ChevronRight className='w-5 h-5' />
+            </IconButton>
           </div>
-        </Content>
-      </Layout>
+        </div>
 
-      {/* Add Task/Meeting Modal */}
-      <Modal
-        title={modalType === 'task' ? 'Add Task' : 'Add Meeting'}
-        open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
-        onOk={() => {
-          form.validateFields().then((values) => {
-            console.log('Form values:', values);
-            setIsModalVisible(false);
-            form.resetFields();
-          });
-        }}>
-        <Form
-          form={form}
-          layout='vertical'>
-          <Form.Item
-            name='title'
-            label='Title'
-            rules={[{ required: true, message: 'Please input a title!' }]}>
-            <Input />
-          </Form.Item>
+        <Paper className='bg-gray-800/30 rounded-lg border border-gray-700 overflow-hidden'>
+          <div className='grid grid-cols-7'>
+            {weekDays.map((day) => (
+              <div
+                key={day}
+                className='py-2 text-center border-b border-gray-700'>
+                <Typography className='text-sm font-medium text-gray-300'>
+                  {day}
+                </Typography>
+              </div>
+            ))}
+          </div>
 
-          {modalType === 'task' ? (
-            <>
-              <Form.Item
-                name='dateRange'
-                label='Date Range'
-                rules={[
-                  { required: true, message: 'Please select date range!' },
-                ]}>
-                <DatePicker.RangePicker className='w-full' />
-              </Form.Item>
-              <Form.Item
-                name='priority'
-                label='Priority'>
-                <Select>
-                  <Option value='low'>Low</Option>
-                  <Option value='medium'>Medium</Option>
-                  <Option value='high'>High</Option>
-                </Select>
-              </Form.Item>
-            </>
-          ) : (
-            <>
-              <Form.Item
-                name='date'
-                label='Date'
-                rules={[{ required: true, message: 'Please select date!' }]}>
-                <DatePicker className='w-full' />
-              </Form.Item>
-              <Form.Item
-                name='time'
-                label='Time'
-                rules={[{ required: true, message: 'Please select time!' }]}>
-                <DatePicker.TimePicker
-                  className='w-full'
-                  format='HH:mm'
-                />
-              </Form.Item>
-            </>
-          )}
-        </Form>
-      </Modal>
-    </Layout>
+          <div className='overflow-x-auto'>
+            {getDaysInMonth(currentDate).map((week, weekIndex) => (
+              <div
+                key={weekIndex}
+                className='grid grid-cols-7'>
+                {week.map((day, dayIndex) => (
+                  <div key={`${weekIndex}-${dayIndex}`}>
+                    {renderDateCell(day)}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </Paper>
+      </Paper>
+    </Box>
   );
 };
 

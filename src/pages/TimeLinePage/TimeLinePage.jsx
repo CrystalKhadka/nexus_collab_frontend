@@ -1,5 +1,26 @@
-import { Card, DatePicker, Layout, Select, Table } from 'antd';
-import React, { useState } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  Container,
+  Grid,
+  LinearProgress,
+  MenuItem,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material';
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { format } from 'date-fns';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 import {
   Bar,
   BarChart,
@@ -12,142 +33,193 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { getMembersRoleAndTaskApi, getProjectByIdApi } from '../../apis/Api';
 
-const { Content } = Layout;
-const { RangePicker } = DatePicker;
-
-// Sample data - replace with your actual data
-const sampleData = {
-  tasks: [
-    {
-      id: 1,
-      task: 'Design Homepage',
-      list: 'Design Tasks',
-      startDate: '2024-12-01',
-      endDate: '2024-12-10',
-      assignee: 'Crystal Khadka',
-      status: 'Completed',
-      progress: 100,
+// MUI theme customization
+const muiStyles = {
+  card: {
+    backgroundColor: 'rgb(31 41 55)',
+    borderRadius: '0.5rem',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+  },
+  tableCell: {
+    color: 'white',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+  },
+  tableHead: {
+    '& .MuiTableCell-head': {
+      backgroundColor: 'rgb(55 65 81)',
+      color: 'white',
+      fontWeight: 600,
     },
-    {
-      id: 2,
-      task: 'Implement Authentication',
-      list: 'Development',
-      startDate: '2024-12-05',
-      endDate: '2024-12-15',
-      assignee: 'Rushmit Karki',
-      status: 'In Progress',
-      progress: 60,
+  },
+  select: {
+    backgroundColor: 'rgb(55 65 81)',
+    color: 'white',
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: 'rgba(255, 255, 255, 0.1)',
     },
-    {
-      id: 3,
-      task: 'User Testing',
-      list: 'QA',
-      startDate: '2024-12-15',
-      endDate: '2024-12-20',
-      assignee: 'Safal Pandey',
-      status: 'Pending',
-      progress: 0,
-    },
-  ],
-  progressData: [
-    { date: '12/01', completed: 5, inProgress: 8, pending: 3 },
-    { date: '12/05', completed: 7, inProgress: 6, pending: 4 },
-    { date: '12/10', completed: 10, inProgress: 4, pending: 2 },
-    { date: '12/15', completed: 12, inProgress: 3, pending: 2 },
-  ],
+  },
+  chip: {
+    borderRadius: '9999px',
+    padding: '0.25rem 0.75rem',
+  },
 };
 
 const TimelinePage = () => {
-  const [dateRange, setDateRange] = useState(null);
+  const [dateRange, setDateRange] = useState([null, null]);
+  const [tasks, setTasks] = useState([]);
+  const [projectData, setProjectData] = useState(null);
+  const [progressData, setProgressData] = useState([]);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [loading, setLoading] = useState(true);
 
-  // Table columns configuration
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Using URL params or context for project ID
+        const projectId = window.location.pathname.split('/').pop();
+
+        const [projectResponse, membersResponse] = await Promise.all([
+          getProjectByIdApi(projectId),
+          getMembersRoleAndTaskApi(projectId),
+        ]);
+
+        setProjectData(projectResponse.data.data);
+
+        const allTasks = membersResponse.data.data.flatMap((member) =>
+          member.tasks.map((task) => ({
+            ...task,
+            assignee: `${member.firstName} ${member.lastName}`,
+            list: task.list?.name || 'Unassigned',
+            status: task.status || 'pending',
+            progress: task.taskProgress || 0,
+          }))
+        );
+
+        setTasks(allTasks);
+
+        // Generate progress data
+        const progressByDate = allTasks.reduce((acc, task) => {
+          const date = format(new Date(task.startDate || new Date()), 'MM/dd');
+          if (!acc[date]) {
+            acc[date] = { completed: 0, inProgress: 0, pending: 0 };
+          }
+          if (task.status === 'Completed') acc[date].completed++;
+          else if (task.status === 'in-progress') acc[date].inProgress++;
+          else acc[date].pending++;
+          return acc;
+        }, {});
+
+        const formattedProgressData = Object.entries(progressByDate)
+          .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB))
+          .map(([date, counts]) => ({
+            date,
+            ...counts,
+          }));
+
+        setProgressData(formattedProgressData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load timeline data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const getStatusColor = (status) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'success';
+      case 'in-progress':
+        return 'primary';
+      default:
+        return 'warning';
+    }
+  };
+
   const columns = [
+    { id: 'name', label: 'Task', minWidth: 170 },
+    { id: 'list', label: 'List', minWidth: 130 },
+    { id: 'assignee', label: 'Assignee', minWidth: 130 },
     {
-      title: 'Task',
-      dataIndex: 'task',
-      key: 'task',
-      render: (text) => <span className='text-white'>{text}</span>,
-    },
-    {
-      title: 'List',
-      dataIndex: 'list',
-      key: 'list',
-      render: (text) => <span className='text-white'>{text}</span>,
-    },
-    {
-      title: 'Assignee',
-      dataIndex: 'assignee',
-      key: 'assignee',
-      render: (text) => <span className='text-white'>{text}</span>,
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
+      id: 'status',
+      label: 'Status',
+      minWidth: 100,
       render: (status) => (
-        <span
-          className={`px-3 py-1 rounded-full text-sm ${
-            status === 'Completed'
-              ? 'bg-green-500/20 text-green-300'
-              : status === 'In Progress'
-              ? 'bg-blue-500/20 text-blue-300'
-              : 'bg-yellow-500/20 text-yellow-300'
-          }`}>
-          {status}
-        </span>
+        <Chip
+          label={status}
+          color={getStatusColor(status)}
+          size='small'
+          sx={muiStyles.chip}
+        />
       ),
     },
     {
-      title: 'Progress',
-      dataIndex: 'progress',
-      key: 'progress',
+      id: 'progress',
+      label: 'Progress',
+      minWidth: 170,
       render: (progress) => (
-        <div className='w-full bg-gray-700 rounded-full h-2'>
-          <div
-            className='bg-blue-500 rounded-full h-2'
-            style={{ width: `${progress}%` }}
+        <Box sx={{ width: '100%' }}>
+          <LinearProgress
+            variant='determinate'
+            value={progress}
+            sx={{
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              '& .MuiLinearProgress-bar': {
+                backgroundColor: progress === 100 ? '#10b981' : '#3b82f6',
+              },
+            }}
           />
-        </div>
+        </Box>
       ),
     },
   ];
 
-  // Gantt Chart Component
   const GanttChart = ({ tasks }) => {
     const chartData = tasks.map((task) => ({
-      task: task.task,
-      start: new Date(task.startDate).getTime(),
-      end: new Date(task.endDate).getTime(),
-      progress: task.progress,
+      task: task.name,
+      start: new Date(task.startDate || null).getTime(),
+      end: new Date(task.endDate || task.startDate || null).getTime(),
+      progress: task.progress || 0,
     }));
 
     return (
-      <div className='h-64'>
-        <ResponsiveContainer
-          width='100%'
-          height='100%'>
+      <Box sx={{ height: 400, width: '100%' }}>
+        <ResponsiveContainer>
           <BarChart
             data={chartData}
             layout='vertical'
-            barSize={20}
             margin={{ top: 20, right: 30, left: 100, bottom: 5 }}>
             <CartesianGrid
               strokeDasharray='3 3'
-              stroke='#444'
+              stroke='#374151'
             />
             <XAxis
               type='number'
               domain={['dataMin', 'dataMax']}
-              tickFormatter={(value) => new Date(value).toLocaleDateString()}
+              tickFormatter={(value) => format(value, 'MM/dd')}
+              stroke='#9ca3af'
             />
             <YAxis
               type='category'
               dataKey='task'
+              stroke='#9ca3af'
+              width={100}
             />
             <Tooltip
-              contentStyle={{ backgroundColor: '#1f2937', border: 'none' }}
-              labelStyle={{ color: '#fff' }}
+              contentStyle={{
+                backgroundColor: '#1f2937',
+                border: 'none',
+                borderRadius: '0.375rem',
+                color: 'white',
+              }}
             />
             <Bar
               dataKey='end'
@@ -161,20 +233,17 @@ const TimelinePage = () => {
             />
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </Box>
     );
   };
 
-  // Progress Chart Component
   const ProgressChart = ({ data }) => (
-    <div className='h-64'>
-      <ResponsiveContainer
-        width='100%'
-        height='100%'>
+    <Box sx={{ height: 400, width: '100%' }}>
+      <ResponsiveContainer>
         <LineChart data={data}>
           <CartesianGrid
             strokeDasharray='3 3'
-            stroke='#444'
+            stroke='#374151'
           />
           <XAxis
             dataKey='date'
@@ -182,8 +251,12 @@ const TimelinePage = () => {
           />
           <YAxis stroke='#9ca3af' />
           <Tooltip
-            contentStyle={{ backgroundColor: '#1f2937', border: 'none' }}
-            labelStyle={{ color: '#fff' }}
+            contentStyle={{
+              backgroundColor: '#1f2937',
+              border: 'none',
+              borderRadius: '0.375rem',
+              color: 'white',
+            }}
           />
           <Legend />
           <Line
@@ -203,90 +276,169 @@ const TimelinePage = () => {
           />
         </LineChart>
       </ResponsiveContainer>
-    </div>
+    </Box>
   );
 
+  const filteredTasks = tasks.filter(
+    (task) =>
+      filterStatus === 'all' || task.status.toLowerCase() === filterStatus
+  );
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          bgcolor: '#111827',
+        }}>
+        <LinearProgress sx={{ width: '50%' }} />
+      </Box>
+    );
+  }
+
   return (
-    <Layout className='flex h-screen bg-gray-900 '>
-      <Layout className=' bg-gray-900 overflow-auto'>
-        <Content className='p-6 bg-gray-800/50'>
-          <div className='max-w-7xl mx-auto space-y-6'>
-            {/* Header */}
-            <div className='flex justify-between items-center'>
-              <h1 className='text-2xl font-semibold text-white'>Timeline</h1>
-              <div className='flex gap-4'>
-                <Select
-                  defaultValue='all'
-                  className='w-32'
-                  options={[
-                    { value: 'all', label: 'All Tasks' },
-                    { value: 'completed', label: 'Completed' },
-                    { value: 'in-progress', label: 'In Progress' },
-                    { value: 'pending', label: 'Pending' },
-                  ]}
+    <Box sx={{ bgcolor: '#111827', minHeight: '100vh', py: 3 }}>
+      <Container maxWidth='xl'>
+        <Box
+          sx={{
+            mb: 4,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+          <Typography
+            variant='h4'
+            sx={{ color: 'white' }}>
+            Timeline
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              size='small'
+              sx={muiStyles.select}>
+              <MenuItem value='all'>All Tasks</MenuItem>
+              <MenuItem value='completed'>Completed</MenuItem>
+              <MenuItem value='in-progress'>In Progress</MenuItem>
+              <MenuItem value='pending'>Pending</MenuItem>
+            </Select>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <DatePicker
+                  label='Start Date'
+                  value={dateRange[0]}
+                  onChange={(newValue) =>
+                    setDateRange([newValue, dateRange[1]])
+                  }
+                  sx={{
+                    '& .MuiInputBase-root': muiStyles.select,
+                    '& .MuiInputBase-input': { color: 'white' },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    },
+                  }}
                 />
-                <RangePicker
-                  onChange={(dates) => setDateRange(dates)}
-                  className='bg-gray-800 border-gray-700'
+                <DatePicker
+                  label='End Date'
+                  value={dateRange[1]}
+                  onChange={(newValue) =>
+                    setDateRange([dateRange[0], newValue])
+                  }
+                  sx={{
+                    '& .MuiInputBase-root': muiStyles.select,
+                    '& .MuiInputBase-input': { color: 'white' },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    },
+                  }}
                 />
-              </div>
-            </div>
+              </Box>
+            </LocalizationProvider>
+          </Box>
+        </Box>
 
-            {/* Task Table */}
-            <Card className='bg-gray-800 border-white/10'>
-              <h2 className='text-lg font-medium text-white mb-4'>
-                Task Overview
-              </h2>
-              <Table
-                columns={columns}
-                dataSource={sampleData.tasks}
-                pagination={false}
-                className='custom-table'
-              />
-            </Card>
+        <Card sx={muiStyles.card}>
+          <CardContent>
+            <Typography
+              variant='h6'
+              sx={{ color: 'white', mb: 2 }}>
+              Task Overview
+            </Typography>
+            <TableContainer>
+              <Table stickyHeader>
+                <TableHead sx={muiStyles.tableHead}>
+                  <TableRow>
+                    {columns.map((column) => (
+                      <TableCell
+                        key={column.id}
+                        style={{ minWidth: column.minWidth }}>
+                        {column.label}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredTasks.map((task) => (
+                    <TableRow
+                      key={task._id}
+                      hover>
+                      {columns.map((column) => (
+                        <TableCell
+                          key={column.id}
+                          sx={muiStyles.tableCell}>
+                          {column.render
+                            ? column.render(task[column.id])
+                            : task[column.id]}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
 
-            {/* Charts Section */}
-            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              {/* Gantt Chart */}
-              <Card className='bg-gray-800 border-white/10'>
-                <h2 className='text-lg font-medium text-white mb-4'>
+        <Grid
+          container
+          spacing={4}
+          sx={{ mt: 2 }}>
+          <Grid
+            item
+            xs={12}
+            md={6}>
+            <Card sx={muiStyles.card}>
+              <CardContent>
+                <Typography
+                  variant='h6'
+                  sx={{ color: 'white', mb: 2 }}>
                   Gantt Chart
-                </h2>
-                <GanttChart tasks={sampleData.tasks} />
-              </Card>
-
-              {/* Progress Chart */}
-              <Card className='bg-gray-800 border-white/10'>
-                <h2 className='text-lg font-medium text-white mb-4'>
+                </Typography>
+                <GanttChart tasks={filteredTasks} />
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid
+            item
+            xs={12}
+            md={6}>
+            <Card sx={muiStyles.card}>
+              <CardContent>
+                <Typography
+                  variant='h6'
+                  sx={{ color: 'white', mb: 2 }}>
                   Progress Overview
-                </h2>
-                <ProgressChart data={sampleData.progressData} />
-              </Card>
-            </div>
-          </div>
-        </Content>
-      </Layout>
-
-      <style
-        jsx
-        global>{`
-        .custom-table .ant-table {
-          background: transparent;
-          color: white;
-        }
-        .custom-table .ant-table-thead > tr > th {
-          background: #374151;
-          color: white;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .custom-table .ant-table-tbody > tr > td {
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .custom-table .ant-table-tbody > tr:hover > td {
-          background: rgba(55, 65, 81, 0.5);
-        }
-      `}</style>
-    </Layout>
+                </Typography>
+                <ProgressChart data={progressData} />
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Container>
+    </Box>
   );
 };
 

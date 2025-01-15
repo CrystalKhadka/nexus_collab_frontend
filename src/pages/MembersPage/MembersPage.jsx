@@ -6,6 +6,7 @@ import {
   FilterList as FilterListIcon,
   PauseCircle as PauseIcon,
   PersonAdd as PersonAddIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import {
   Avatar,
@@ -15,30 +16,37 @@ import {
   CardContent,
   Chip,
   Container,
+  Divider,
+  Fade,
+  Grid,
   IconButton,
+  InputAdornment,
   Paper,
   Stack,
+  TextField,
+  Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getProjectByIdApi, searchUserApi } from '../../apis/Api';
+import { getMembersRoleAndTaskApi, getProjectByIdApi } from '../../apis/Api';
 import InviteMembersModal from '../../components/InviteUserModal';
 
 const MembersPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [members, setMembers] = useState([]);
+  const [filteredMembers, setFilteredMembers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [joinRequests] = useState([
-    { id: 1, name: 'Safal Pandey' },
-    { id: 2, name: 'Pramesh Pathak' },
+    { id: 1, name: 'Safal Pandey', avatar: 'SP', role: 'Developer' },
+    { id: 2, name: 'Pramesh Pathak', avatar: 'PP', role: 'Designer' },
   ]);
   const [currentProject, setCurrentProject] = useState(null);
   const { id: projectId } = useParams();
   const [isInviteModalVisible, setIsInviteModalVisible] = useState(false);
-  const [users, setUsers] = useState([]);
 
   useEffect(() => {
     const fetchProjectData = async () => {
@@ -50,27 +58,41 @@ const MembersPage = () => {
       }
     };
 
+    const fetchMembers = async () => {
+      try {
+        const membersResponse = await getMembersRoleAndTaskApi(projectId);
+        setMembers(membersResponse.data.data);
+        setFilteredMembers(membersResponse.data.data);
+      } catch (error) {
+        console.error('Error fetching members:', error);
+      }
+    };
     if (projectId) {
       fetchProjectData();
+      fetchMembers();
     }
   }, [projectId]);
 
   const searchUser = (e) => {
-    const search = e.target.value;
-    searchUserApi(search)
-      .then((res) => {
-        setUsers(res.data.data);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+    const searchValue = e.target.value.toLowerCase();
+    setSearchTerm(searchValue);
+
+    const filtered = members.filter(
+      (member) =>
+        member.firstName.toLowerCase().includes(searchValue) ||
+        member.lastName.toLowerCase().includes(searchValue) ||
+        member.email.toLowerCase().includes(searchValue) ||
+        member.role.toLowerCase().includes(searchValue)
+    );
+
+    setFilteredMembers(filtered);
   };
 
   const isAdmin = (id) => {
     return currentProject?.admin.includes(id);
   };
 
-  const ActionButton = ({ text, variant, onClick }) => {
+  const ActionButton = ({ text, variant, onClick, tooltipText }) => {
     const getButtonProps = () => {
       switch (variant) {
         case 'leave':
@@ -102,168 +124,353 @@ const MembersPage = () => {
       }
     };
 
-    return (
+    const button = (
       <Button
         variant='contained'
         size={isMobile ? 'small' : 'medium'}
+        sx={{
+          borderRadius: 2,
+          textTransform: 'none',
+          boxShadow: 'none',
+          '&:hover': {
+            boxShadow: theme.shadows[2],
+          },
+        }}
         {...getButtonProps()}
         onClick={onClick}>
         {text}
       </Button>
     );
+
+    return tooltipText ? (
+      <Tooltip title={tooltipText}>{button}</Tooltip>
+    ) : (
+      button
+    );
   };
+
+  const MemberCard = ({ member }) => (
+    <Fade
+      in
+      timeout={500}>
+      <Card
+        elevation={0}
+        sx={{
+          borderRadius: 2,
+          border: `1px solid ${theme.palette.divider}`,
+          '&:hover': {
+            boxShadow: theme.shadows[4],
+            transform: 'translateY(-2px)',
+            transition: 'all 0.3s ease-in-out',
+          },
+        }}>
+        <CardContent>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              gap: 2,
+            }}>
+            <Avatar
+              sx={{
+                bgcolor: theme.palette.primary.main,
+                width: 48,
+                height: 48,
+              }}>
+              {member.firstName[0] + member.lastName[0]}
+            </Avatar>
+
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant='h6'
+                gutterBottom={!isMobile}>
+                {member.firstName + ' ' + member.lastName}
+              </Typography>
+              <Typography
+                variant='body2'
+                color='text.secondary'>
+                {member.email}
+              </Typography>
+            </Box>
+
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1}
+              alignItems={{ xs: 'flex-start', sm: 'center' }}
+              sx={{ mt: { xs: 2, sm: 0 } }}>
+              <Chip
+                label={`${member.tasks.length} Tasks`}
+                variant='outlined'
+                size={isMobile ? 'small' : 'medium'}
+                sx={{ borderRadius: 1 }}
+              />
+              <Chip
+                label={member.role}
+                variant='outlined'
+                color='primary'
+                size={isMobile ? 'small' : 'medium'}
+                sx={{ borderRadius: 1 }}
+              />
+              <ActionButton
+                text='Remove'
+                variant={isAdmin(member._id) ? '' : 'remove'}
+                tooltipText={
+                  isAdmin(member._id) ? "Can't remove admin" : 'Remove member'
+                }
+              />
+            </Stack>
+          </Box>
+        </CardContent>
+      </Card>
+    </Fade>
+  );
 
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 4 }}>
       <Container maxWidth='lg'>
         {/* Header */}
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          justifyContent='space-between'
-          alignItems={{ xs: 'stretch', sm: 'center' }}
-          spacing={2}
-          mb={4}>
-          <Stack
-            direction='row'
+        <Paper
+          elevation={0}
+          sx={{
+            p: 3,
+            mb: 4,
+            borderRadius: 2,
+            background: theme.palette.background.paper,
+            border: `1px solid ${theme.palette.divider}`,
+          }}>
+          <Grid
+            container
+            spacing={3}
+            alignItems='center'>
+            <Grid
+              item
+              xs={12}
+              sm>
+              <Stack
+                direction='row'
+                spacing={2}
+                alignItems='center'>
+                <Typography
+                  variant='h4'
+                  component='h1'>
+                  {currentProject?.name || 'Project 1'}
+                </Typography>
+                <Tooltip title='Edit project'>
+                  <IconButton
+                    color='primary'
+                    size='small'>
+                    <EditIcon />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            </Grid>
+            <Grid
+              item
+              xs={12}
+              sm='auto'>
+              <Button
+                variant='contained'
+                startIcon={<PersonAddIcon />}
+                onClick={() => setIsInviteModalVisible(true)}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  boxShadow: 'none',
+                  '&:hover': {
+                    boxShadow: theme.shadows[2],
+                  },
+                }}>
+                Invite Members
+              </Button>
+            </Grid>
+          </Grid>
+        </Paper>
+
+        {/* Search and Filter Section */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 3,
+            mb: 4,
+            borderRadius: 2,
+            background: theme.palette.background.paper,
+            border: `1px solid ${theme.palette.divider}`,
+          }}>
+          <Grid
+            container
             spacing={2}
             alignItems='center'>
-            <Typography
-              variant='h4'
-              component='h1'>
-              {currentProject?.name || 'Project 1'}
-            </Typography>
-            <IconButton
-              color='primary'
-              size='small'>
-              <EditIcon />
-            </IconButton>
-          </Stack>
-
-          <Button
-            variant='contained'
-            startIcon={<PersonAddIcon />}
-            onClick={() => setIsInviteModalVisible(true)}>
-            Invite Members
-          </Button>
-        </Stack>
+            <Grid
+              item
+              xs={12}
+              sm>
+              <TextField
+                fullWidth
+                variant='outlined'
+                placeholder='Search members...'
+                value={searchTerm}
+                onChange={searchUser}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position='start'>
+                      <SearchIcon color='action' />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ borderRadius: 2 }}
+              />
+            </Grid>
+            <Grid
+              item
+              xs={12}
+              sm='auto'>
+              <Button
+                startIcon={<FilterListIcon />}
+                variant='outlined'
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                }}>
+                Filter
+              </Button>
+            </Grid>
+          </Grid>
+        </Paper>
 
         {/* Project Members Section */}
         <Paper
-          elevation={2}
-          sx={{ p: 3, mb: 4 }}>
-          <Stack
-            direction='row'
-            justifyContent='space-between'
-            alignItems='center'
-            mb={3}>
-            <Typography variant='h5'>Project Members</Typography>
-            <Button
-              startIcon={<FilterListIcon />}
-              variant='outlined'>
-              Filter
-            </Button>
-          </Stack>
-
+          elevation={0}
+          sx={{
+            p: 3,
+            mb: 4,
+            borderRadius: 2,
+            background: theme.palette.background.paper,
+            border: `1px solid ${theme.palette.divider}`,
+          }}>
+          <Typography
+            variant='h5'
+            gutterBottom>
+            Project Members ({filteredMembers.length})
+          </Typography>
+          <Divider sx={{ my: 2 }} />
           <Stack spacing={2}>
-            {currentProject?.members.map((member) => (
-              <Card
+            {filteredMembers.map((member) => (
+              <MemberCard
                 key={member._id}
-                variant='outlined'>
-                <CardContent>
-                  <Stack
-                    direction={{ xs: 'column', sm: 'row' }}
-                    justifyContent='space-between'
-                    alignItems={{ xs: 'flex-start', sm: 'center' }}
-                    spacing={2}>
-                    <Stack spacing={1}>
-                      <Typography variant='h6'>
-                        {member.firstName + ' ' + member.lastName}
-                      </Typography>
-                      <Typography
-                        variant='body2'
-                        color='text.secondary'>
-                        {member.email}
-                      </Typography>
-                    </Stack>
-
-                    <Stack
-                      direction={{ xs: 'column', sm: 'row' }}
-                      spacing={2}
-                      alignItems={{ xs: 'flex-start', sm: 'center' }}>
-                      <Chip
-                        label={`Tasks: ${member.tasksAssigned}`}
-                        variant='outlined'
-                        size={isMobile ? 'small' : 'medium'}
-                      />
-                      <Chip
-                        label={member.role}
-                        variant='outlined'
-                        size={isMobile ? 'small' : 'medium'}
-                      />
-                      <ActionButton
-                        text='Remove'
-                        variant={isAdmin(member._id) ? '' : 'remove'}
-                      />
-                    </Stack>
-                  </Stack>
-                </CardContent>
-              </Card>
+                member={member}
+              />
             ))}
+            {filteredMembers.length === 0 && (
+              <Typography
+                variant='body1'
+                color='text.secondary'
+                align='center'
+                sx={{ py: 4 }}>
+                No members found matching your search criteria
+              </Typography>
+            )}
           </Stack>
         </Paper>
 
         {/* Join Requests Section */}
         <Paper
-          elevation={2}
-          sx={{ p: 3 }}>
+          elevation={0}
+          sx={{
+            p: 3,
+            borderRadius: 2,
+            background: theme.palette.background.paper,
+            border: `1px solid ${theme.palette.divider}`,
+          }}>
           <Stack
             direction='row'
             justifyContent='space-between'
             alignItems='center'
             mb={3}>
             <Typography variant='h5'>Join Requests</Typography>
-            <Button variant='outlined'>Show All</Button>
+            <Button
+              variant='outlined'
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+              }}>
+              Show All
+            </Button>
           </Stack>
-
+          <Divider sx={{ my: 2 }} />
           <Stack spacing={2}>
             {joinRequests.map((request) => (
-              <Card
+              <Fade
                 key={request.id}
-                variant='outlined'>
-                <CardContent>
-                  <Stack
-                    direction={{ xs: 'column', sm: 'row' }}
-                    justifyContent='space-between'
-                    alignItems={{ xs: 'flex-start', sm: 'center' }}
-                    spacing={2}>
-                    <Stack
-                      direction='row'
+                in
+                timeout={500}>
+                <Card
+                  elevation={0}
+                  sx={{
+                    borderRadius: 2,
+                    border: `1px solid ${theme.palette.divider}`,
+                    '&:hover': {
+                      boxShadow: theme.shadows[4],
+                      transform: 'translateY(-2px)',
+                      transition: 'all 0.3s ease-in-out',
+                    },
+                  }}>
+                  <CardContent>
+                    <Grid
+                      container
                       spacing={2}
                       alignItems='center'>
-                      <Avatar>{request.name[0]}</Avatar>
-                      <Typography variant='h6'>{request.name}</Typography>
-                    </Stack>
-
-                    <Stack
-                      direction='row'
-                      spacing={1}
-                      sx={{ flexWrap: 'wrap', gap: 1 }}>
-                      <ActionButton
-                        text='Accept'
-                        variant='accept'
-                      />
-                      <ActionButton
-                        text='Hold'
-                        variant='hold'
-                      />
-                      <ActionButton
-                        text='Reject'
-                        variant='reject'
-                      />
-                    </Stack>
-                  </Stack>
-                </CardContent>
-              </Card>
+                      <Grid item>
+                        <Avatar
+                          sx={{
+                            bgcolor: theme.palette.secondary.main,
+                            width: 48,
+                            height: 48,
+                          }}>
+                          {request.avatar}
+                        </Avatar>
+                      </Grid>
+                      <Grid
+                        item
+                        xs={12}
+                        sm>
+                        <Typography
+                          variant='h6'
+                          gutterBottom={!isMobile}>
+                          {request.name}
+                        </Typography>
+                        <Typography
+                          variant='body2'
+                          color='text.secondary'>
+                          {request.role}
+                        </Typography>
+                      </Grid>
+                      <Grid
+                        item
+                        xs={12}
+                        sm='auto'>
+                        <Stack
+                          direction={{ xs: 'column', sm: 'row' }}
+                          spacing={1}
+                          alignItems={{ xs: 'flex-start', sm: 'center' }}>
+                          <ActionButton
+                            text='Accept'
+                            variant='accept'
+                          />
+                          <ActionButton
+                            text='Hold'
+                            variant='hold'
+                          />
+                          <ActionButton
+                            text='Reject'
+                            variant='reject'
+                          />
+                        </Stack>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Fade>
             ))}
           </Stack>
         </Paper>

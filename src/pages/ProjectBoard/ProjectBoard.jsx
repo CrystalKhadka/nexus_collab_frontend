@@ -1,20 +1,30 @@
-import { Layout, message } from 'antd';
+import {
+  Alert,
+  Box,
+  CircularProgress,
+  Container,
+  Snackbar,
+} from '@mui/material';
 import React, { useEffect, useState } from 'react';
-import { DragDropContext } from 'react-beautiful-dnd';
 import { useParams } from 'react-router-dom';
 import {
+  addRequirementApi,
+  assignDateApi,
   assignTaskApi,
   changeTaskDescApi,
+  changeTaskLabelApi,
   changeTaskNameApi,
+  changeTaskPriorityApi,
+  changeTaskStatusApi,
   deleteTaskApi,
   getListsByProjectIdApi,
   getProjectByIdApi,
+  moveListApi,
+  updateCoverImageApi,
 } from '../../apis/Api';
 import KanbanBoard from '../../components/projectBoard/KanbanBoard';
 import TaskDetailsModal from '../../components/TaskDetailsModal';
 import { useProjectBoard } from '../../hooks/useProjectBoard';
-
-const { Content } = Layout;
 
 const ProjectBoard = () => {
   const [currentProject, setCurrentProject] = useState(null);
@@ -22,21 +32,56 @@ const ProjectBoard = () => {
   const [lists, setLists] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
   const [taskDetailsModalOpen, setTaskDetailsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
 
-  const { handleDragEnd, handleUpdateTask, handleDeleteTask, handleMoveTask } =
-    useProjectBoard({ lists, setLists });
+  const { handleDragEnd, handleUpdateTask, handleMoveTask } = useProjectBoard({
+    lists,
+    setLists,
+  });
+
+  const showMessage = (message, severity = 'success') => {
+    setSnackbar({
+      open: true,
+      message,
+      severity,
+    });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
 
   // Fetch project and lists data
   useEffect(() => {
     const fetchProjectData = async () => {
       try {
-        const projectResponse = await getProjectByIdApi(projectId);
-        setCurrentProject(projectResponse.data.data);
+        setIsLoading(true);
+        setError(null);
 
-        const listsResponse = await getListsByProjectIdApi(projectId);
+        const [projectResponse, listsResponse] = await Promise.all([
+          getProjectByIdApi(projectId),
+          getListsByProjectIdApi(projectId),
+        ]);
+
+        setCurrentProject(projectResponse.data.data);
         setLists(listsResponse.data.data);
       } catch (error) {
         console.error('Error fetching project data:', error);
+        setError(
+          error.response?.data?.message || 'Failed to load project data'
+        );
+        showMessage(
+          error.response?.data?.message || 'Failed to load project data',
+          'error'
+        );
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -45,106 +90,263 @@ const ProjectBoard = () => {
     }
   }, [projectId]);
 
-  const handleNameChange = (newName, taskId) => {
-    console.log(taskId, newName);
-    changeTaskNameApi({ data: { name: newName }, id: taskId })
-      .then(async (res) => {
-        const projectResponse = await getProjectByIdApi(projectId);
-        setCurrentProject(projectResponse.data.data);
-
-        const listsResponse = await getListsByProjectIdApi(projectId);
-        setLists(listsResponse.data.data);
-        message.success('Task name updated successfully');
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+  const handleNameChange = async (newName, taskId) => {
+    try {
+      await changeTaskNameApi({ data: { name: newName }, id: taskId });
+      showMessage('Task name updated successfully');
+      const listsResponse = await getListsByProjectIdApi(projectId);
+      setLists(listsResponse.data.data);
+    } catch (err) {
+      showMessage(
+        err.response?.data?.message || 'Failed to update task name',
+        'error'
+      );
+    }
   };
 
-  const handleDescriptionChange = (newDescription, taskId) => {
-    console.log(taskId, newDescription);
-    changeTaskDescApi({ data: { description: newDescription }, id: taskId })
-      .then(async (res) => {
-        const projectResponse = await getProjectByIdApi(projectId);
-        setCurrentProject(projectResponse.data.data);
-
-        const listsResponse = await getListsByProjectIdApi(projectId);
-        setLists(listsResponse.data.data);
-        message.success('Task description updated successfully');
-      })
-      .catch((err) => {
-        console.log(err);
+  const handleDescriptionChange = async (newDescription, taskId) => {
+    try {
+      await changeTaskDescApi({
+        data: { description: newDescription },
+        id: taskId,
       });
+      showMessage('Task description updated successfully');
+      const listsResponse = await getListsByProjectIdApi(projectId);
+      setLists(listsResponse.data.data);
+    } catch (err) {
+      showMessage(
+        err.response?.data?.message || 'Failed to update description',
+        'error'
+      );
+    }
   };
 
-  const handleAssignTask = (id, data) => {
-    assignTaskApi(id, data)
-      .then(async (res) => {
-        message.success('Task assigned successfully');
-        const projectResponse = await getProjectByIdApi(projectId);
-        setCurrentProject(projectResponse.data.data);
-
-        const listsResponse = await getListsByProjectIdApi(projectId);
-        setLists(listsResponse.data.data);
-        message.success('Task description updated successfully');
-      })
-      .catch((err) => console.log(err));
+  const handleAssignTask = async (id, data) => {
+    try {
+      await assignTaskApi(id, data);
+      showMessage('Task assigned successfully');
+      const listsResponse = await getListsByProjectIdApi(projectId);
+      setLists(listsResponse.data.data);
+    } catch (err) {
+      showMessage(
+        err.response?.data?.message || 'Failed to assign task',
+        'error'
+      );
+    }
   };
 
   const onDeleteTask = async (taskId) => {
     try {
-      deleteTaskApi(taskId)
-        .then(async (res) => {
-          const projectResponse = await getProjectByIdApi(projectId);
-          setCurrentProject(projectResponse.data.data);
-
-          const listsResponse = await getListsByProjectIdApi(projectId);
-          setLists(listsResponse.data.data);
-          message.success('Task deleted successfully');
-        })
-        .catch(() => {
-          message.error('Something went wrong');
-        });
-    } catch (error) {
-      console.error('Error deleting task:', error);
+      await deleteTaskApi(taskId);
+      showMessage('Task deleted successfully');
+      const listsResponse = await getListsByProjectIdApi(projectId);
+      setLists(listsResponse.data.data);
+      setTaskDetailsModalOpen(false);
+    } catch (err) {
+      showMessage(
+        err.response?.data?.message || 'Failed to delete task',
+        'error'
+      );
     }
   };
 
+  const handleDateChange = async (id, type, date) => {
+    try {
+      const data = {
+        date: date.toISOString().split('T')[0],
+        type: type,
+      };
+      const response = await assignDateApi(id, data);
+      showMessage(response.data.message);
+      const listsResponse = await getListsByProjectIdApi(projectId);
+      setLists(listsResponse.data.data);
+    } catch (err) {
+      showMessage(
+        err.response?.data?.message || 'Failed to update date',
+        'error'
+      );
+    }
+  };
+
+  const handleLabelChange = async (id, data) => {
+    try {
+      const response = await changeTaskLabelApi(id, data);
+      showMessage(response.data.message);
+      const listsResponse = await getListsByProjectIdApi(projectId);
+      setLists(listsResponse.data.data);
+    } catch (err) {
+      showMessage(
+        err.response?.data?.message || 'Failed to update label',
+        'error'
+      );
+    }
+  };
+
+  const handleStatusChange = async (id, status) => {
+    try {
+      const response = await changeTaskStatusApi(id, { status });
+      showMessage(response.data.message);
+      const listsResponse = await getListsByProjectIdApi(projectId);
+      setLists(listsResponse.data.data);
+    } catch (err) {
+      showMessage(
+        err.response?.data?.message || 'Failed to update status',
+        'error'
+      );
+    }
+  };
+
+  const handlePriorityChange = async (id, priority) => {
+    try {
+      const response = await changeTaskPriorityApi(id, { priority });
+      showMessage(response.data.message);
+      const listsResponse = await getListsByProjectIdApi(projectId);
+      setLists(listsResponse.data.data);
+    } catch (err) {
+      showMessage(
+        err.response?.data?.message || 'Failed to update priority',
+        'error'
+      );
+    }
+  };
+
+  const handleCoverChange = async (taskId, file) => {
+    try {
+      const formData = new FormData();
+      formData.append('cover', file);
+      const response = await updateCoverImageApi(taskId, formData);
+      showMessage(response.data.message);
+      const listsResponse = await getListsByProjectIdApi(projectId);
+      setLists(listsResponse.data.data);
+    } catch (err) {
+      showMessage(
+        err.response?.data?.message || 'Failed to update cover',
+        'error'
+      );
+    }
+  };
+
+  const handleRequirementChange = async (taskId, data) => {
+    try {
+      const response = await addRequirementApi(taskId, data);
+      showMessage(response.data.message);
+      setSelectedTask(response.data.data);
+      const listsResponse = await getListsByProjectIdApi(projectId);
+      setLists(listsResponse.data.data);
+      return data;
+    } catch (err) {
+      showMessage(
+        err.response?.data?.message || 'Failed to update requirements',
+        'error'
+      );
+      return null;
+    }
+  };
+
+  const handleMoveList = async (sourceListId, data) => {
+    try {
+      const response = await moveListApi(sourceListId, data);
+      showMessage(response.data.message);
+      const listsResponse = await getListsByProjectIdApi(projectId);
+      setLists(listsResponse.data.data);
+    } catch (err) {
+      showMessage(
+        err.response?.data?.message || 'Failed to move list',
+        'error'
+      );
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Box
+        display='flex'
+        justifyContent='center'
+        alignItems='center'
+        minHeight='100vh'
+        bgcolor='background.default'>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box
+        display='flex'
+        justifyContent='center'
+        alignItems='center'
+        minHeight='100vh'
+        bgcolor='background.default'>
+        <Alert severity='error'>{error}</Alert>
+      </Box>
+    );
+  }
+
   return (
-    <Layout className='min-h-screen bg-gray-900'>
-      <Layout className=' bg-gray-900'>
-        <Content className='p-6 overflow-x-auto bg-gray-800/50 pt-10'>
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <KanbanBoard
-              lists={lists}
-              setLists={setLists}
-              projectId={projectId}
-              onTaskClick={(task) => {
-                setSelectedTask(task);
-                setTaskDetailsModalOpen(true);
-              }}
-              onDeleteTask={onDeleteTask}
-            />
-          </DragDropContext>
-        </Content>
-      </Layout>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
+      <Container
+        maxWidth={false}
+        sx={{
+          flex: 1,
+          p: 3,
+          bgcolor: 'background.paper',
+          borderRadius: 1,
+          mt: 2,
+          mb: 2,
+          overflowX: 'auto',
+        }}>
+        <KanbanBoard
+          lists={lists}
+          setLists={setLists}
+          projectId={projectId}
+          onTaskClick={(task) => {
+            setSelectedTask(task);
+            setTaskDetailsModalOpen(true);
+          }}
+          onDeleteTask={onDeleteTask}
+          onMoveList={handleMoveList}
+        />
+      </Container>
 
       <TaskDetailsModal
         open={taskDetailsModalOpen}
         onClose={() => setTaskDetailsModalOpen(false)}
         selectedTask={selectedTask}
         onUpdateTask={handleUpdateTask}
-        onDeleteTask={(taskId) => {
-          setTaskDetailsModalOpen(false);
-          onDeleteTask(taskId);
-        }}
+        onDeleteTask={onDeleteTask}
+        onMoveList={handleMoveList}
         onMoveTask={handleMoveTask}
         handleNameChange={handleNameChange}
         handleDescriptionChange={handleDescriptionChange}
         handleAssign={handleAssignTask}
-        handleDateChange={() => {}}
+        handleDateChange={handleDateChange}
+        handleLabelChange={handleLabelChange}
+        handleStatusChange={handleStatusChange}
+        handlePriorityChange={handlePriorityChange}
+        handleCoverChange={handleCoverChange}
+        handleRequirementChange={handleRequirementChange}
       />
-    </Layout>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant='filled'>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 
