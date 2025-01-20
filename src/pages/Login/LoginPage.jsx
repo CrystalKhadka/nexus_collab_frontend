@@ -7,6 +7,7 @@ import {
   sendVerificationEmailApi,
   verifyOtpApi,
 } from '../../apis/Api';
+import ForgotPasswordModal from '../../components/ForgotPasswordModal';
 import VerificationModal from '../../components/VerificationModal';
 
 const { Content } = Layout;
@@ -16,6 +17,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -235,11 +237,13 @@ const LoginPage = () => {
                   </Form.Item>
 
                   <div className='flex justify-end'>
-                    <Link
-                      to='/forgot-password'
-                      className='text-green-400 hover:text-green-300'>
+                    <Button
+                      className='text-green-400 hover:text-green-300 border-none bg-transparent'
+                      onClick={() => {
+                        setShowForgotPassword(true);
+                      }}>
                       Forgot Password?
-                    </Link>
+                    </Button>
                   </div>
 
                   <Form.Item>
@@ -288,6 +292,11 @@ const LoginPage = () => {
         onClose={() => setShowVerification(false)}
         onVerify={(code) => handleVerify(code)}
         email={form.getFieldValue('email')}
+      />
+
+      <ForgotPasswordModal
+        open={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
       />
     </Layout>
   );

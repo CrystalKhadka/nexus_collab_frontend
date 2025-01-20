@@ -162,7 +162,7 @@ const TaskList = ({
             sx={{
               color: 'grey.400',
               '&:hover': {
-                color: 'white',
+                color: 'white', 
                 backgroundColor: 'rgba(255, 255, 255, 0.05)',
               },
             }}>

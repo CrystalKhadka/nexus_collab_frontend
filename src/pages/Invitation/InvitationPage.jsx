@@ -27,6 +27,7 @@ import {
   acceptProjectInviteApi,
   getInvitedProjectsApi,
   rejectProjectInviteApi,
+  requestAccessApi,
   searchProjectsApi,
 } from '../../apis/Api';
 
@@ -130,11 +131,17 @@ const InvitationPage = () => {
   };
 
   const handleProjectJoin = (project) => {
-    if (project.isPrivate) {
-      showNotification(`Request sent to join ${project.name}`, 'info');
-    } else {
-      showNotification(`Joined ${project.name} successfully!`);
-    }
+    requestAccessApi(project._id)
+      .then((res) => {
+        showNotification(`Requested access to ${project.name}`);
+      })
+      .catch((err) => {
+        console.log(err);
+        showNotification(
+          `Failed to request access to ${project.name}`,
+          'error'
+        );
+      });
   };
 
   // Pagination calculations

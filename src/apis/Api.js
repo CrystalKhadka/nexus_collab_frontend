@@ -101,6 +101,14 @@ export const addListToProjectApi = ({ data, id }) =>
 export const rejectProjectInviteApi = ({ data, id }) =>
   Api.put('/project/reject_invite/' + id, data, jsonConfig);
 
+// requestAccess
+export const requestAccessApi = (id) =>
+  Api.put('/project/request_access/' + id, {}, jsonConfig);
+
+// fetchRequestedMembers
+export const fetchRequestedMembersApi = (id) =>
+  Api.get('/project/fetch_requested_members/' + id, jsonConfig);
+
 // getMembersRoleAndTask
 export const getMembersRoleAndTaskApi = (id) =>
   Api.get(`/project/get_members_role_task/${id}`, jsonConfig);
@@ -237,3 +245,15 @@ export const uploadProfilePicApi = (data) =>
 // update user
 export const updateUserApi = (data) =>
   Api.put('/user/update', data, jsonConfig);
+
+// send_forgot_password_email
+export const sendForgotPasswordEmailApi = (data) =>
+  Api.put('/user/send_forgot_password_email', data, jsonConfig);
+
+// reset_password
+export const resetPasswordApi = (data) =>
+  Api.put('/user/reset_password', data, jsonConfig);
+
+// verify_forgot_password_otp
+export const verifyForgotPasswordOTPApi = (data) =>
+  Api.put('/user/verify_forgot_password_otp', data, jsonConfig);

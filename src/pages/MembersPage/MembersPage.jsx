@@ -31,7 +31,11 @@ import {
 } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getMembersRoleAndTaskApi, getProjectByIdApi } from '../../apis/Api';
+import {
+  fetchRequestedMembersApi,
+  getMembersRoleAndTaskApi,
+  getProjectByIdApi,
+} from '../../apis/Api';
 import InviteMembersModal from '../../components/InviteUserModal';
 
 const MembersPage = () => {
@@ -40,10 +44,7 @@ const MembersPage = () => {
   const [members, setMembers] = useState([]);
   const [filteredMembers, setFilteredMembers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [joinRequests] = useState([
-    { id: 1, name: 'Safal Pandey', avatar: 'SP', role: 'Developer' },
-    { id: 2, name: 'Pramesh Pathak', avatar: 'PP', role: 'Designer' },
-  ]);
+  const [joinRequests, setJoinRequests] = useState([]);
   const [currentProject, setCurrentProject] = useState(null);
   const { id: projectId } = useParams();
   const [isInviteModalVisible, setIsInviteModalVisible] = useState(false);
@@ -67,9 +68,19 @@ const MembersPage = () => {
         console.error('Error fetching members:', error);
       }
     };
+
+    const fetchRequest = async () => {
+      try {
+        const membersResponse = await fetchRequestedMembersApi(projectId);
+        setJoinRequests(membersResponse.data.data);
+      } catch (error) {
+        console.error('Error fetching members:', error);
+      }
+    };
     if (projectId) {
       fetchProjectData();
       fetchMembers();
+      fetchRequest();
     }
   }, [projectId]);
 
@@ -401,7 +412,7 @@ const MembersPage = () => {
           <Stack spacing={2}>
             {joinRequests.map((request) => (
               <Fade
-                key={request.id}
+                key={request._id}
                 in
                 timeout={500}>
                 <Card
@@ -426,9 +437,8 @@ const MembersPage = () => {
                             bgcolor: theme.palette.secondary.main,
                             width: 48,
                             height: 48,
-                          }}>
-                          {request.avatar}
-                        </Avatar>
+                          }}
+                          src={`http://localhost:5000/profilePic/${request.image}`}></Avatar>
                       </Grid>
                       <Grid
                         item
@@ -437,12 +447,12 @@ const MembersPage = () => {
                         <Typography
                           variant='h6'
                           gutterBottom={!isMobile}>
-                          {request.name}
+                          {request.firstName} {request.lastName}
                         </Typography>
                         <Typography
                           variant='body2'
                           color='text.secondary'>
-                          {request.role}
+                          {request.email}
                         </Typography>
                       </Grid>
                       <Grid
