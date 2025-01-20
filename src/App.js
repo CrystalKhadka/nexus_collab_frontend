@@ -21,6 +21,7 @@ import LandingPage from './pages/LandingPage/LandingPage';
 import LoginPage from './pages/Login/LoginPage';
 import MembersPage from './pages/MembersPage/MembersPage';
 import PreCallSetupPage from './pages/PreCall/PreCallPage';
+import ProfilePage from './pages/Profile/Profile';
 import ProjectBoard from './pages/ProjectBoard/ProjectBoard';
 import RegisterPage from './pages/Register/RegisterPage';
 import SettingsPage from './pages/Settings/SettingsPage';
@@ -205,6 +206,15 @@ function App() {
               <Route
                 path='/preCall/:channelId'
                 element={<PreCallSetupPage />}
+              />
+
+              <Route
+                path='/profile'
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
               />
               {/* Catch all route - Redirect to dashboard if authenticated, otherwise to landing */}
               {/* <Route

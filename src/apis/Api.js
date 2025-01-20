@@ -229,3 +229,11 @@ export const endCallById = (id) => Api.put(`/call/end/${id}`, {}, jsonConfig);
 // leave call
 export const leaveCallById = (id) =>
   Api.put(`/call/leave/${id}`, {}, jsonConfig);
+
+// upload_profile_pic
+export const uploadProfilePicApi = (data) =>
+  Api.post('/user/upload_profile_pic', data, config);
+
+// update user
+export const updateUserApi = (data) =>
+  Api.put('/user/update', data, jsonConfig);
