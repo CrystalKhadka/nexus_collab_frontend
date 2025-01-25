@@ -1,6 +1,21 @@
-import { Button, Form, Input, Layout, message } from 'antd';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { Lock, Mail, Visibility, VisibilityOff } from '@mui/icons-material';
+import {
+  AppBar,
+  Box,
+  Button,
+  CircularProgress,
+  Container,
+  Divider,
+  Grid,
+  IconButton,
+  InputAdornment,
+  TextField,
+  Toolbar,
+  Typography,
+} from '@mui/material';
+import { styled } from '@mui/material/styles';
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import {
   loginUserApi,
@@ -10,16 +25,71 @@ import {
 import ForgotPasswordModal from '../../components/ForgotPasswordModal';
 import VerificationModal from '../../components/VerificationModal';
 
-const { Content } = Layout;
+const StyledAppBar = styled(AppBar)(({ theme }) => ({
+  backgroundColor: theme.palette.background.paper,
+  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+}));
+
+const ContentBox = styled(Box)(({ theme }) => ({
+  minHeight: '100vh',
+  backgroundColor: theme.palette.background.default,
+  padding: theme.spacing(4, 2),
+}));
+
+const LoginBox = styled(Box)(({ theme }) => ({
+  maxWidth: '28rem',
+  margin: '0 auto',
+  padding: theme.spacing(4),
+  borderRadius: theme.shape.borderRadius,
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  backgroundColor: theme.palette.background.paper,
+}));
+
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  '& .MuiOutlinedInput-root': {
+    backgroundColor: 'rgba(31, 41, 55, 0.5)',
+    '&:-webkit-autofill': {
+      '-webkit-box-shadow': '0 0 0 100px rgba(31, 41, 55, 0.5) inset',
+      '-webkit-text-fill-color': '#ffffff',
+      backgroundColor: 'rgba(31, 41, 55, 0.5)',
+    },
+    '&:hover': {
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    '&.Mui-focused': {
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+  },
+  '& .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  '& .MuiInputLabel-root': {
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  '& .MuiInputAdornment-root': {
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  '& input:-webkit-autofill': {
+    WebkitBoxShadow: '0 0 0 1000px #18212f inset !important',
+    WebkitTextFillColor: '#ffffff !important',
+    caretColor: '#18212f',
+    borderRadius: 'inherit',
+    border: '1px solid #18212f',
+  },
+}));
 
 const LoginPage = () => {
-  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const { register, handleSubmit, watch } = useForm();
 
-  const onFinish = async (values) => {
+  const onSubmit = async (values) => {
     setLoading(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -27,278 +97,244 @@ const LoginPage = () => {
         email: values.email,
         password: values.password,
       };
-      loginUserApi(data)
-        .then((response) => {
-          if (response.data.success) {
-            message.success(response.data.message);
-            const token = response.data.token;
-            localStorage.setItem('token', token);
 
-            // Redirect to login page
-            window.location.href = '/dashboard';
-          }
-        })
-        .catch((error) => {
-          if (error.response) {
-            if (error.response.status === 400) {
-              message.error(error.response.data.message);
-              if (error.response.data.isVerified === false) {
-                sendVerificationEmailApi({
-                  email: values.email,
-                })
-                  .then((response) => {
-                    console.log(response);
-                    if (response.status === 200) {
-                      message.success('Verification email sent successfully.');
-                      setShowVerification(true);
-                    } else {
-                      message.error('Verification email could not be sent.');
-                    }
-                  })
-                  .catch((error) => {
-                    console.error(error);
-                    if (error.response) {
-                      if (error.response.status === 400) {
-                        message.error(error.response.data.message);
-                      } else if (error.response.status === 500) {
-                        message.error('Internal server error');
-                      } else {
-                        message.error('Verification email could not be sent.');
-                      }
-                    } else {
-                      message.error('Verification email could not be sent.');
-                    }
-                  });
-              }
-            } else if (error.response.status === 500) {
-              message.error(error.response.data.message);
-            } else {
-              message.error('An error occurred. Please try again later.');
-              console.error('An error occurred:', error);
-            }
-          } else {
-            message.error('An error occurred. Please try again later.');
-            console.error('An error occurred:', error);
-          }
-        });
+      const response = await loginUserApi(data);
+      if (response.data.success) {
+        localStorage.setItem('token', response.data.token);
+        window.location.href = '/dashboard';
+      }
     } catch (error) {
-      console.error('Login failed:', error);
+      if (error.response?.status === 400 && !error.response.data.isVerified) {
+        try {
+          await sendVerificationEmailApi({ email: values.email });
+          setShowVerification(true);
+        } catch (verifyError) {
+          console.error('Verification email error:', verifyError);
+        }
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerify = (otp) => {
-    console.log(otp);
-    // Verify OTP
-    verifyOtpApi({
-      email: form.getFieldValue('email'),
-      otp: parseInt(otp),
-    })
-      .then((response) => {
-        console.log(response);
-        if (response.status === 200) {
-          message.success('Verification successful. You can now log in.');
-          setShowVerification(false);
-          const token = response.data.token;
-          localStorage.setItem('token', token);
-
-          // Redirect to login page
-          window.location.href = '/dashboard';
-        } else {
-          message.error('Verification failed. Please try again.');
-        }
-      })
-      .catch((error) => {
-        console.error(error);
-        if (error.response) {
-          if (error.response.status === 400) {
-            message.error(error.response.data.message);
-          } else if (error.response.status === 500) {
-            message.error('Internal server error');
-          } else {
-            message.error('Verification failed. Please try again.');
-          }
-        } else {
-          message.error('Verification failed. Please try again.');
-        }
+  const handleVerify = async (otp) => {
+    try {
+      const response = await verifyOtpApi({
+        email: watch('email'),
+        otp: parseInt(otp),
       });
+
+      if (response.status === 200) {
+        localStorage.setItem('token', response.data.token);
+        window.location.href = '/dashboard';
+      }
+    } catch (error) {
+      console.error('Verification failed:', error);
+    }
   };
 
-  const PasswordInput = ({ value, onChange, placeholder }) => (
-    <div className='relative'>
-      <Input
-        value={value}
-        onChange={onChange}
-        type={showPassword ? 'text' : 'password'}
-        placeholder={placeholder}
-        className='h-12 rounded-xl bg-white'
-        prefix={<Lock className='h-5 w-5 text-gray-400' />}
-        suffix={
-          <button
-            type='button'
-            onClick={() => setShowPassword(!showPassword)}
-            className='text-gray-400 hover:text-gray-600 focus:outline-none bg-transparent border-0 mx-2'>
-            {showPassword ? (
-              <EyeOff className='h-5 w-5' />
-            ) : (
-              <Eye className='h-5 w-5' />
-            )}
-          </button>
-        }
-      />
-    </div>
-  );
-
   return (
-    <Layout
-      className='min-h-screen bg-gray-900 '
-      style={{ fontFamily: 'Satoshi' }}>
-      {/* Navbar */}
-      <nav className='w-full bg-black/20 backdrop-blur-sm shadow-sm sticky top-0 z-50'>
-        <div className='container mx-auto px-6 py-4 flex justify-between items-center'>
-          <img
-            className='h-8'
-            src='/images/logo1.png'
-            alt='Nexus'
-          />
-          <div className='space-x-4'>
-            <Button
-              className='bg-gray-100 text-gray-600 hover:bg-gray-200 border-none h-10 px-6 rounded-xl'
-              size='large'>
-              <Link to='/login'>Login</Link>
-            </Button>
-            <Button
-              className='bg-orange-500 text-white hover:bg-orange-600 border-none h-10 px-6 rounded-xl'
-              size='large'>
-              <Link to='/register'>Register</Link>
-            </Button>
-          </div>
-        </div>
-      </nav>
+    <Box>
+      <StyledAppBar position='sticky'>
+        <Toolbar>
+          <Container
+            maxWidth='lg'
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+            <img
+              src='/images/logo1.png'
+              alt='Nexus'
+              style={{ height: 32 }}
+            />
+            <Box>
+              <Button
+                component={Link}
+                to='/login'
+                variant='outlined'
+                sx={{ mr: 2 }}>
+                Login
+              </Button>
+              <Button
+                component={Link}
+                to='/register'
+                variant='contained'>
+                Register
+              </Button>
+            </Box>
+          </Container>
+        </Toolbar>
+      </StyledAppBar>
 
-      {/* Main Content */}
-      <Content className='p-6 bg-gray-800/50'>
-        <div className='container mx-auto'>
-          <div className='grid lg:grid-cols-2 gap-12 items-center'>
-            {/* Logo Side */}
-            <div className='hidden lg:flex justify-center'>
-              <div className='relative w-full max-w-lg'>
-                <div className='absolute inset-0 bg-gradient-to-r from-green-500/20 to-orange-500/20 rounded-[2rem] blur-3xl'></div>
+      <ContentBox>
+        <Container maxWidth='lg'>
+          <Grid
+            container
+            spacing={4}
+            alignItems='center'>
+            <Grid
+              item
+              xs={12}
+              md={6}
+              sx={{ display: { xs: 'none', md: 'block' } }}>
+              <Box sx={{ maxWidth: 500, margin: '0 auto' }}>
                 <img
                   src='/images/nexus_logo.png'
                   alt='Nexus Logo'
-                  className='relative w-full drop-shadow-2xl'
+                  style={{ width: '100%' }}
                 />
-              </div>
-            </div>
+              </Box>
+            </Grid>
 
-            {/* Form Side */}
-            <div className='w-full max-w-md mx-auto'>
-              <div className='space-y-6'>
-                <div className='text-center lg:text-left'>
-                  <h1 className='text-4xl font-bold text-white mb-2'>
-                    Welcome back
-                  </h1>
-                  <p className='text-gray-300 text-lg'>
-                    Enter your credentials to access your account
-                  </p>
-                </div>
+            <Grid
+              item
+              xs={12}
+              md={6}>
+              <LoginBox>
+                <Typography
+                  variant='h4'
+                  color='white'
+                  gutterBottom>
+                  Welcome Back
+                </Typography>
+                <Typography
+                  variant='body1'
+                  color='text.secondary'
+                  gutterBottom>
+                  Enter your credentials to access your account.
+                </Typography>
 
-                <Form
-                  form={form}
-                  name='login'
-                  onFinish={onFinish}
-                  layout='vertical'
-                  size='large'
-                  className='space-y-6'>
-                  <Form.Item
-                    name='email'
-                    rules={[
-                      { required: true, message: 'Please input your email!' },
-                      { type: 'email', message: 'Please enter a valid email!' },
-                    ]}>
-                    <Input
-                      prefix={<Mail className='h-5 w-5 text-gray-400' />}
-                      placeholder='Email Address'
-                      className='h-12 rounded-xl bg-white'
-                    />
-                  </Form.Item>
+                <Box
+                  component='form'
+                  onSubmit={handleSubmit(onSubmit)}
+                  sx={{ mt: 4 }}>
+                  <StyledTextField
+                    fullWidth
+                    {...register('email', {
+                      required: true,
+                      pattern: /^\S+@\S+$/i,
+                    })}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position='start'>
+                          <Mail />
+                        </InputAdornment>
+                      ),
+                    }}
+                    placeholder='Email Address'
+                  />
 
-                  <Form.Item
-                    name='password'
-                    rules={[
-                      {
-                        required: true,
-                        message: 'Please input your password!',
-                      },
-                    ]}>
-                    <PasswordInput placeholder='Password' />
-                  </Form.Item>
+                  <StyledTextField
+                    fullWidth
+                    type={showPassword ? 'text' : 'password'}
+                    {...register('password', { required: true })}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position='start'>
+                          <Lock />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position='end'>
+                          <IconButton
+                            onClick={() => setShowPassword(!showPassword)}>
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    placeholder='Password'
+                  />
 
-                  <div className='flex justify-end'>
+                  <Box
+                    sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
                     <Button
-                      className='text-green-400 hover:text-green-300 border-none bg-transparent'
-                      onClick={() => {
-                        setShowForgotPassword(true);
-                      }}>
+                      onClick={() => setShowForgotPassword(true)}
+                      sx={{ textTransform: 'none' }}>
                       Forgot Password?
                     </Button>
-                  </div>
-
-                  <Form.Item>
-                    <Button
-                      type='primary'
-                      htmlType='submit'
-                      loading={loading}
-                      className='w-full h-12 bg-orange-500 hover:bg-orange-600 border-none rounded-xl text-lg font-medium'>
-                      Login
-                    </Button>
-                  </Form.Item>
-
-                  <div className='relative flex items-center justify-center gap-4'>
-                    <div className='h-px bg-gray-400 flex-1'></div>
-                    <span className='text-gray-300'>or</span>
-                    <div className='h-px bg-gray-400 flex-1'></div>
-                  </div>
+                  </Box>
 
                   <Button
-                    className='w-full h-12 bg-white hover:bg-gray-50 rounded-xl flex items-center justify-center gap-2 text-gray-600'
-                    size='large'>
-                    <img
-                      src='https://cdn.cdnlogo.com/logos/g/35/google-icon.svg'
-                      alt='Google'
-                      className='w-5 h-5'
+                    fullWidth
+                    type='submit'
+                    variant='contained'
+                    disabled={loading}
+                    sx={{ height: 48, mb: 3, fontSize: '1rem' }}>
+                    {loading ? <CircularProgress size={24} /> : 'Sign in'}
+                  </Button>
+
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2,
+                      mb: 3,
+                    }}>
+                    <Divider
+                      sx={{ flex: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }}
                     />
+                    <Typography color='text.secondary'>or</Typography>
+                    <Divider
+                      sx={{ flex: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }}
+                    />
+                  </Box>
+
+                  <Button
+                    fullWidth
+                    variant='outlined'
+                    color='inherit'
+                    sx={{
+                      height: 48,
+                      mb: 3,
+                      fontSize: '1rem',
+                      borderColor: 'rgba(255, 255, 255, 0.1)',
+                      '&:hover': {
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      },
+                    }}
+                    startIcon={
+                      <img
+                        src='https://cdn.cdnlogo.com/logos/g/35/google-icon.svg'
+                        alt='Google'
+                        style={{ width: 20, height: 20 }}
+                      />
+                    }>
                     Continue with Google
                   </Button>
 
-                  <div className='text-center text-white'>
+                  <Typography
+                    align='center'
+                    color='text.secondary'>
                     Don't have an account?{' '}
                     <Link
                       to='/register'
-                      className='text-green-400 hover:text-green-300'>
-                      Signup
+                      style={{ color: '#3f51b5', textDecoration: 'none' }}>
+                      Sign up
                     </Link>
-                  </div>
-                </Form>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Content>
+                  </Typography>
+                </Box>
+              </LoginBox>
+            </Grid>
+          </Grid>
+        </Container>
+      </ContentBox>
+
       <VerificationModal
         open={showVerification}
         onClose={() => setShowVerification(false)}
-        onVerify={(code) => handleVerify(code)}
-        email={form.getFieldValue('email')}
+        onVerify={handleVerify}
+        email={watch('email')}
       />
 
       <ForgotPasswordModal
         open={showForgotPassword}
         onClose={() => setShowForgotPassword(false)}
       />
-    </Layout>
+    </Box>
   );
 };
 

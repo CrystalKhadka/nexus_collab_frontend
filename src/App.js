@@ -38,7 +38,7 @@ const darkTheme = createTheme({
       paper: 'rgba(31, 41, 55, 0.5)', // bg-gray-800/50
     },
     primary: {
-      main: '#3f51b5',
+      main: '#F68716',
     },
   },
   components: {

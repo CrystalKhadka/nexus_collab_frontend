@@ -1,90 +1,122 @@
-import { ArrowForward, ExpandMore, Search } from '@mui/icons-material';
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-  Breadcrumbs,
-  Container,
-  Divider,
-  IconButton,
-  Link,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Paper,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
 import React, { useState } from 'react';
+import {
+  Container, Box, Typography, Paper, TextField, Accordion,
+  AccordionSummary, AccordionDetails, List, ListItem,
+  ListItemIcon, ListItemText, Divider, IconButton,
+  Tooltip, Breadcrumbs, Link
+} from '@mui/material';
+import { Search, ExpandMore, ArrowForward, Email } from '@mui/icons-material';
 
 const HelpAndDocumentation = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [expanded, setExpanded] = useState(false);
+
+  const handleAccordionChange = (panel) => (event, isExpanded) => {
+    setExpanded(isExpanded ? panel : false);
+  };
 
   const helpSections = [
     {
-      title: 'Getting Started',
+      title: 'User Management',
       content: [
         {
-          subtitle: 'Creating Your First Project',
+          subtitle: 'Authentication',
           steps: [
-            'Click on "Create More" in the My Projects section',
-            'Enter project name and description',
-            'Optionally upload a project image',
-            'Click Create Project to finish',
+            'Register with email: Fill out the registration form with your details',
+            'Verify email: Check your inbox for OTP verification',
+            'Login: Use your registered email and password',
+            'Profile management: Update profile picture and user information',
+            'Password recovery: Use forgot password feature if needed'
           ],
-        },
-        {
-          subtitle: 'Managing Tasks and Lists',
-          steps: [
-            'Navigate to your project board',
-            'Click "Add List" to create a new list',
-            'Add tasks to lists using the "+" button',
-            'Drag and drop tasks between lists',
-          ],
-        },
+        }
       ],
     },
     {
-      title: 'Collaboration Features',
+      title: 'Project Management',
       content: [
         {
-          subtitle: 'Project Invitations',
+          subtitle: 'Project Creation and Setup',
           steps: [
-            'Go to the Project Settings',
-            'Click on "Invite Members"',
-            'Enter email addresses',
-            'Set member permissions',
-            'Send invitations',
+            'Create new projects with name, description, and image',
+            'Invite team members via email',
+            'Manage project settings and member permissions',
+            'View joined and invited projects in dashboard',
+            'Request access to existing projects'
           ],
         },
         {
-          subtitle: 'Real-time Communication',
+          subtitle: 'Task Management',
           steps: [
-            'Use the chat feature for quick messages',
-            'Start video calls from the meeting tab',
-            'Share screens during calls',
-            'Use @mentions to notify team members',
+            'Create and organize lists within projects',
+            'Add tasks with descriptions and deadlines',
+            'Assign tasks to team members',
+            'Set task priorities and labels',
+            'Track task status and requirements',
+            'Move tasks between lists',
+            'Upload cover images for tasks'
           ],
-        },
+        }
       ],
     },
     {
-      title: 'Troubleshooting',
+      title: 'Communication Tools',
       content: [
         {
-          subtitle: 'Common Issues',
+          subtitle: 'Chat and Messaging',
           steps: [
-            'Check your internet connection if experiencing sync issues',
-            'Clear browser cache if facing loading problems',
-            'Ensure notifications are enabled in browser settings',
-            'Contact support for persistent issues',
+            'Create communication channels within projects',
+            'Send messages to channels or direct messages to users',
+            'Share files and attachments',
+            'View online team members',
+            'Get notifications for important updates'
           ],
         },
+        {
+          subtitle: 'Video Calls',
+          steps: [
+            'Start video calls from any channel',
+            'Set up audio and video before joining',
+            'Join ongoing calls',
+            'Leave or end calls',
+            'View call participants'
+          ],
+        }
       ],
     },
+    {
+      title: 'Project Views',
+      content: [
+        {
+          subtitle: 'Different Project Perspectives',
+          steps: [
+            'Board View: Kanban-style task management',
+            'Calendar View: Timeline of tasks and deadlines',
+            'Timeline View: Project progress visualization',
+            'Members View: Team member roles and assignments',
+            'Settings View: Project configuration'
+          ],
+        }
+      ],
+    },
+    {
+      title: 'Navigation',
+      content: [
+        {
+          subtitle: 'Available Routes',
+          steps: [
+            'Dashboard: Overview of all projects',
+            'Project Board: Task management interface',
+            'Chat: Communication channels',
+            'Calendar: Schedule view',
+            'Timeline: Project progress',
+            'Members: Team management',
+            'Settings: Project configuration',
+            'Profile: Personal settings',
+            'Invitations: Manage project invites'
+          ],
+        }
+      ],
+    }
   ];
 
   const filterContent = (content) => {
@@ -103,70 +135,115 @@ const HelpAndDocumentation = () => {
   };
 
   return (
-    <Container maxWidth='lg'>
+    <Container maxWidth="lg">
       <Box sx={{ py: 4 }}>
         <Breadcrumbs sx={{ mb: 3 }}>
-          <Link href='/'>Home</Link>
-          <Typography color='text.primary'>Help & Documentation</Typography>
+          <Link 
+            href="/" 
+            underline="hover"
+            sx={{ color: 'text.secondary' }}
+          >
+            Home
+          </Link>
+          <Typography color="text.primary">Help & Documentation</Typography>
         </Breadcrumbs>
 
-        <Paper
-          elevation={0}
-          sx={{ p: 4 }}>
+        <Paper 
+          elevation={3}
+          sx={{ 
+            p: 4,
+            backgroundColor: 'background.paper',
+            borderRadius: 2
+          }}
+        >
           <Typography
-            variant='h4'
-            gutterBottom>
+            variant="h4"
+            gutterBottom
+            sx={{ fontWeight: 'bold' }}
+          >
             Help & Documentation
           </Typography>
+          
           <Typography
-            variant='body1'
-            color='text.secondary'
-            paragraph>
-            Welcome to Nexus Collaboration Platform's help center.
+            variant="body1"
+            color="text.secondary"
+            sx={{ mb: 4 }}
+          >
+            Welcome to Nexus Collaboration Platform. This comprehensive guide covers all features and functionalities of the platform.
           </Typography>
 
-          <Box sx={{ my: 4 }}>
-            <TextField
-              fullWidth
-              variant='outlined'
-              placeholder='Search documentation...'
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <Search sx={{ color: 'text.secondary', mr: 1 }} />
-                ),
-              }}
-            />
-          </Box>
+          <TextField
+            fullWidth
+            variant="outlined"
+            placeholder="Search documentation..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{ 
+              mb: 4,
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'background.default',
+              }
+            }}
+            InputProps={{
+              startAdornment: (
+                <Search sx={{ color: 'text.secondary', mr: 1 }} />
+              ),
+            }}
+          />
 
           {filterContent(helpSections).map((section, index) => (
             <Accordion
               key={index}
-              sx={{ mb: 2 }}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant='h6'>{section.title}</Typography>
+              expanded={expanded === `panel${index}`}
+              onChange={handleAccordionChange(`panel${index}`)}
+              sx={{
+                mb: 2,
+                backgroundColor: 'background.default',
+                '&:before': {
+                  display: 'none',
+                },
+              }}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMore />}
+                sx={{
+                  borderRadius: 1,
+                  '&.Mui-expanded': {
+                    minHeight: 48,
+                  },
+                }}
+              >
+                <Typography variant="h6">{section.title}</Typography>
               </AccordionSummary>
               <AccordionDetails>
                 {section.content.map((item, i) => (
-                  <Box
-                    key={i}
-                    sx={{ mb: 3 }}>
+                  <Box key={i} sx={{ mb: 3 }}>
                     <Typography
-                      variant='subtitle1'
-                      sx={{ mb: 1, fontWeight: 'bold' }}>
+                      variant="subtitle1"
+                      sx={{ 
+                        mb: 2,
+                        fontWeight: 600,
+                        color: 'primary.main'
+                      }}
+                    >
                       {item.subtitle}
                     </Typography>
                     <List>
                       {item.steps.map((step, stepIndex) => (
-                        <ListItem key={stepIndex}>
+                        <ListItem key={stepIndex} sx={{ py: 0.5 }}>
                           <ListItemIcon>
-                            <ArrowForward
-                              color='primary'
-                              fontSize='small'
+                            <ArrowForward 
+                              color="primary"
+                              fontSize="small"
                             />
                           </ListItemIcon>
-                          <ListItemText primary={step} />
+                          <ListItemText 
+                            primary={step}
+                            primaryTypographyProps={{
+                              variant: 'body2',
+                              color: 'text.secondary'
+                            }}
+                          />
                         </ListItem>
                       ))}
                     </List>
@@ -180,24 +257,39 @@ const HelpAndDocumentation = () => {
 
           <Box sx={{ textAlign: 'center' }}>
             <Typography
-              variant='h6'
-              gutterBottom>
+              variant="h6"
+              gutterBottom
+              sx={{ fontWeight: 'bold' }}
+            >
               Need More Help?
             </Typography>
             <Typography
-              variant='body1'
-              color='text.secondary'>
+              variant="body1"
+              color="text.secondary"
+              sx={{ mb: 2 }}
+            >
               Contact our support team for additional assistance
             </Typography>
-            <Box sx={{ mt: 2 }}>
-              <Tooltip title='Contact Support'>
-                <IconButton
-                  color='primary'
-                  size='small'>
-                  220042@softwarica.edu.np
-                </IconButton>
-              </Tooltip>
-            </Box>
+            <Tooltip title="Contact Support">
+              <IconButton 
+                color="primary"
+                sx={{
+                  backgroundColor: 'background.default',
+                  '&:hover': {
+                    backgroundColor: 'background.paper',
+                  }
+                }}
+              >
+                <Email />
+              </IconButton>
+            </Tooltip>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mt: 1 }}
+            >
+              220042@softwarica.edu.np
+            </Typography>
           </Box>
         </Paper>
       </Box>
