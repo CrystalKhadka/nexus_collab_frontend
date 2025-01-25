@@ -16,11 +16,14 @@ import {
   changeTaskNameApi,
   changeTaskPriorityApi,
   changeTaskStatusApi,
+  deleteListApi,
   deleteTaskApi,
   getListsByProjectIdApi,
   getProjectByIdApi,
+  joinOrLeaveTaskApi,
   moveListApi,
   updateCoverImageApi,
+  updateListApi,
 } from '../../apis/Api';
 import KanbanBoard from '../../components/projectBoard/KanbanBoard';
 import TaskDetailsModal from '../../components/TaskDetailsModal';
@@ -92,8 +95,12 @@ const ProjectBoard = () => {
 
   const handleNameChange = async (newName, taskId) => {
     try {
-      await changeTaskNameApi({ data: { name: newName }, id: taskId });
-      showMessage('Task name updated successfully');
+      const response = await changeTaskNameApi({
+        data: { name: newName },
+        id: taskId,
+      });
+      showMessage(response.data.message);
+      setSelectedTask(response.data.data);
       const listsResponse = await getListsByProjectIdApi(projectId);
       setLists(listsResponse.data.data);
     } catch (err) {
@@ -106,11 +113,12 @@ const ProjectBoard = () => {
 
   const handleDescriptionChange = async (newDescription, taskId) => {
     try {
-      await changeTaskDescApi({
+      const response = await changeTaskDescApi({
         data: { description: newDescription },
         id: taskId,
       });
-      showMessage('Task description updated successfully');
+      showMessage(response.data.message);
+      setSelectedTask(response.data.data);
       const listsResponse = await getListsByProjectIdApi(projectId);
       setLists(listsResponse.data.data);
     } catch (err) {
@@ -123,8 +131,10 @@ const ProjectBoard = () => {
 
   const handleAssignTask = async (id, data) => {
     try {
-      await assignTaskApi(id, data);
-      showMessage('Task assigned successfully');
+      const response = await assignTaskApi(id, data);
+      showMessage(response.data.message);
+      setSelectedTask(response.data.data);
+
       const listsResponse = await getListsByProjectIdApi(projectId);
       setLists(listsResponse.data.data);
     } catch (err) {
@@ -139,6 +149,7 @@ const ProjectBoard = () => {
     try {
       await deleteTaskApi(taskId);
       showMessage('Task deleted successfully');
+
       const listsResponse = await getListsByProjectIdApi(projectId);
       setLists(listsResponse.data.data);
       setTaskDetailsModalOpen(false);
@@ -158,6 +169,7 @@ const ProjectBoard = () => {
       };
       const response = await assignDateApi(id, data);
       showMessage(response.data.message);
+      setSelectedTask(response.data.data);
       const listsResponse = await getListsByProjectIdApi(projectId);
       setLists(listsResponse.data.data);
     } catch (err) {
@@ -172,6 +184,7 @@ const ProjectBoard = () => {
     try {
       const response = await changeTaskLabelApi(id, data);
       showMessage(response.data.message);
+      setSelectedTask(response.data.data);
       const listsResponse = await getListsByProjectIdApi(projectId);
       setLists(listsResponse.data.data);
     } catch (err) {
@@ -186,6 +199,7 @@ const ProjectBoard = () => {
     try {
       const response = await changeTaskStatusApi(id, { status });
       showMessage(response.data.message);
+      setSelectedTask(response.data.data);
       const listsResponse = await getListsByProjectIdApi(projectId);
       setLists(listsResponse.data.data);
     } catch (err) {
@@ -200,6 +214,7 @@ const ProjectBoard = () => {
     try {
       const response = await changeTaskPriorityApi(id, { priority });
       showMessage(response.data.message);
+      setSelectedTask(response.data.data);
       const listsResponse = await getListsByProjectIdApi(projectId);
       setLists(listsResponse.data.data);
     } catch (err) {
@@ -215,6 +230,7 @@ const ProjectBoard = () => {
       const formData = new FormData();
       formData.append('cover', file);
       const response = await updateCoverImageApi(taskId, formData);
+      setSelectedTask(response.data.data);
       showMessage(response.data.message);
       const listsResponse = await getListsByProjectIdApi(projectId);
       setLists(listsResponse.data.data);
@@ -254,6 +270,48 @@ const ProjectBoard = () => {
         err.response?.data?.message || 'Failed to move list',
         'error'
       );
+    }
+  };
+
+  const handleJoinOrLeaveTask = async (taskId) => {
+    try {
+      const response = await joinOrLeaveTaskApi(taskId, {});
+      showMessage(response.data.message);
+      setSelectedTask(response.data.data);
+      const listsResponse = await getListsByProjectIdApi(projectId);
+      setLists(listsResponse.data.data);
+    } catch (err) {
+      showMessage(
+        err.response?.data?.message || 'Failed to join or leave task',
+        'error'
+      );
+    }
+  };
+  const handleDeleteList = async (listId) => {
+    try {
+      await deleteListApi(listId);
+      const listsResponse = await getListsByProjectIdApi(projectId);
+      setLists(listsResponse.data.data);
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.message || 'Failed to delete list',
+        severity: 'error',
+      });
+    }
+  };
+
+  const handleRenameList = async (listId, name) => {
+    try {
+      await updateListApi(listId, { name });
+      const listsResponse = await getListsByProjectIdApi(projectId);
+      setLists(listsResponse.data.data);
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.message || 'Failed to rename list',
+        severity: 'error',
+      });
     }
   };
 
@@ -312,6 +370,8 @@ const ProjectBoard = () => {
           }}
           onDeleteTask={onDeleteTask}
           onMoveList={handleMoveList}
+          onDeleteList={handleDeleteList}
+          onRenameList={handleRenameList}
         />
       </Container>
 
@@ -332,6 +392,7 @@ const ProjectBoard = () => {
         handlePriorityChange={handlePriorityChange}
         handleCoverChange={handleCoverChange}
         handleRequirementChange={handleRequirementChange}
+        handleJoinOrLeaveTask={handleJoinOrLeaveTask}
       />
 
       <Snackbar

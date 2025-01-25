@@ -67,6 +67,9 @@ export const getProjectByIdApi = (id) =>
 export const updateProjectApi = (id, data) =>
   Api.put('/project/update/' + id, data, jsonConfig);
 
+// delete
+export const deleteProjectApi = (id) =>
+  Api.delete('/project/delete/' + id, jsonConfig);
 export const getMyProjectsApi = () =>
   Api.get('/project/get_my_projects', jsonConfig);
 
@@ -119,6 +122,14 @@ export const createListApi = (data) =>
 
 export const getListsByProjectIdApi = (id) =>
   Api.get(`/list/get_all/${id}`, jsonConfig);
+
+// updateList
+export const updateListApi = (id, data) =>
+  Api.put('/list/update/' + id, data, jsonConfig);
+
+// deleteList
+export const deleteListApi = (id) =>
+  Api.delete('/list/delete/' + id, jsonConfig);
 
 // moveList
 export const moveListApi = (id, data) =>
@@ -182,6 +193,14 @@ export const addRequirementApi = (id, data) =>
 // change_status
 export const changeTaskStatusApi = (id, data) =>
   Api.put(`/task/change_status/${id}`, data, jsonConfig);
+
+// move
+export const moveTaskApi = (id, data) =>
+  Api.put(`/task/move/${id}`, data, jsonConfig);
+
+// join_or_leave
+export const joinOrLeaveTaskApi = (id, data) =>
+  Api.put(`/task/join_or_leave/${id}`, data, jsonConfig);
 
 // Channels
 
@@ -257,3 +276,15 @@ export const resetPasswordApi = (data) =>
 // verify_forgot_password_otp
 export const verifyForgotPasswordOTPApi = (data) =>
   Api.put('/user/verify_forgot_password_otp', data, jsonConfig);
+
+// notification
+export const getNotificationsApi = () =>
+  Api.get('/notification/get', jsonConfig);
+
+// read notification
+export const readNotificationApi = () =>
+  Api.put('/notification/mark_as_read', {}, jsonConfig);
+
+// get unread notification
+export const getUnreadNotificationsApi = () =>
+  Api.get('/notification/unread', jsonConfig);

@@ -1,18 +1,15 @@
 import {
-  FavoriteBorder,
+  Help,
   KeyboardArrowDown,
   LogoutOutlined,
   MailOutline,
-  NotificationsOutlined,
   PersonOutline,
 } from '@mui/icons-material';
 import {
   AppBar,
   Avatar,
-  Badge,
   Box,
   Divider,
-  IconButton,
   Menu,
   MenuItem,
   Toolbar,
@@ -20,6 +17,12 @@ import {
 } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  getMeApi,
+  getNotificationsApi,
+  getUnreadNotificationsApi,
+} from '../apis/Api';
+import NotificationMenu from './NotificationMenu';
 import { useSocket } from './socketContext/SocketContext';
 
 const Navbar = () => {
@@ -27,6 +30,10 @@ const Navbar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const { socket } = useSocket();
+  const [user, setUser] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState([]);
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -56,14 +63,15 @@ const Navbar = () => {
       },
     },
     {
-      key: 'favorites',
-      icon: <FavoriteBorder sx={{ color: 'text.secondary' }} />,
-      label: 'Favorites',
+      key: 'Help',
+      icon: <Help sx={{ color: 'text.secondary' }} />,
+      label: 'Help',
       onClick: () => {
-        navigate('/favorites');
+        navigate('/help');
         handleClose();
       },
     },
+
     {
       key: 'logout',
       icon: <LogoutOutlined sx={{ color: 'text.secondary' }} />,
@@ -76,19 +84,49 @@ const Navbar = () => {
     },
   ];
 
-  const handleNotificatonClicked = () => {
-    const data = {
-      data: 'clicked',
-      senderId: '67761774c4b1d77537a07e66',
-    };
-    socket.emit('notification', data);
-  };
+  const handleNotificatonClicked = () => {};
 
   useEffect(() => {
+    getMeApi()
+      .then((res) => {
+        if (res.status === 200) {
+          setUser(res.data.user);
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+
+    getNotificationsApi()
+      .then((res) => {
+        console.log(res);
+        if (res.status === 200) {
+          setNotifications(res.data.notifications);
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+
+    getUnreadNotificationsApi()
+      .then((res) => {
+        if (res.status === 200) {
+          setUnreadCount(res.data.count);
+          setUnreadNotifications(res.data.notifications);
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+
     socket.on('notificationMessage', (data) => {
       console.log(data);
     });
-  }, []);
+
+    return () => {
+      socket.off('notificationMessage');
+    };
+  }, [socket]);
 
   return (
     <AppBar
@@ -114,16 +152,11 @@ const Navbar = () => {
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <IconButton
-            size='large'
-            color='inherit'
-            onClick={handleNotificatonClicked}>
-            <Badge
-              badgeContent={3}
-              color='error'>
-              <NotificationsOutlined />
-            </Badge>
-          </IconButton>
+          <NotificationMenu
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onNotificationClick={handleNotificatonClicked}
+          />
 
           <Box
             onClick={handleClick}
@@ -139,7 +172,7 @@ const Navbar = () => {
               transition: 'all 0.2s ease-in-out',
             }}>
             <Avatar
-              src='/images/download.jpg'
+              src={`http://localhost:5000/profilePic/${user?.image}`}
               sx={{
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 width: 40,
@@ -152,7 +185,7 @@ const Navbar = () => {
                 color: 'white',
                 fontWeight: 500,
               }}>
-              Crystal Khadka
+              {user && user.firstName + ' ' + user.lastName}
             </Typography>
             <KeyboardArrowDown
               sx={{

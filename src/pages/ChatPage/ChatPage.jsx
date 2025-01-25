@@ -6,11 +6,7 @@ import {
   Chat as ChatIcon,
   Close as CloseIcon,
   EmojiEmotions as EmojiIcon,
-  Folder as FolderIcon,
-  Group as GroupIcon,
-  Image as ImageIcon,
   KeyboardArrowDown,
-  Search as SearchIcon,
   Send as SendIcon,
   Tag as TagIcon,
 } from '@mui/icons-material';
@@ -20,12 +16,14 @@ import {
   Badge,
   Box,
   Button,
+  CardMedia,
   IconButton,
   InputBase,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
+  Modal,
   Paper,
   Snackbar,
   Tab,
@@ -35,7 +33,7 @@ import {
   Typography,
 } from '@mui/material';
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   createChannelApi,
   getChannelsByProjectIdApi,
@@ -46,7 +44,9 @@ import {
   getProjectByIdApi,
   sendMessageApi,
   sendMessageToChannelApi,
+  uploadFileApi,
 } from '../../apis/Api';
+import { MediaUpload } from '../../components/FileUpload';
 import { useSocket } from '../../components/socketContext/SocketContext';
 
 // Typing animation keyframes
@@ -356,21 +356,6 @@ const ChatHeader = ({ selectedChannel, selectedMember }) => (
             <CallIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title='View Members'>
-          <IconButton>
-            <GroupIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title='View Files'>
-          <IconButton>
-            <FolderIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title='Search'>
-          <IconButton>
-            <SearchIcon />
-          </IconButton>
-        </Tooltip>
       </Box>
     </Box>
   </Box>
@@ -392,6 +377,9 @@ const DateDivider = ({ date }) => (
 
 const ChatMessage = ({ message, currentUserId }) => {
   const isOwn = message.sender._id === currentUserId;
+  const [open, setOpen] = useState(false);
+
+  const isImage = message.type === 'image';
 
   return (
     <Box
@@ -429,9 +417,79 @@ const ChatMessage = ({ message, currentUserId }) => {
             bgcolor: isOwn ? 'primary.main' : 'background.paper',
             color: isOwn ? 'primary.contrastText' : 'text.primary',
             borderRadius: 2,
-          }}>
-          <Typography>{message.text}</Typography>
+            cursor: isImage ? 'pointer' : 'default',
+          }}
+          onClick={() => isImage && setOpen(true)}>
+          {message.type === 'message' ? (
+            <Typography
+              variant='body2'
+              sx={{ wordBreak: 'break-word' }}>
+              {message.text}
+            </Typography>
+          ) : isImage ? (
+            <CardMedia
+              component='img'
+              image={`http://localhost:5000/message/${message.type}/${message.text}`}
+              alt='Shared image'
+              sx={{
+                maxHeight: 200,
+                maxWidth: 300,
+                borderRadius: 1,
+                objectFit: 'contain',
+              }}
+            />
+          ) : (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AttachFileIcon />
+              <Link
+                href={`http://localhost:5000/message/${message.type}/${message.text}`}
+                target='_blank'
+                rel='noopener'
+                sx={{ color: 'inherit', textDecoration: 'none' }}>
+                <Typography>{message.text}</Typography>
+              </Link>
+            </Box>
+          )}
         </Paper>
+
+        {isImage && (
+          <Modal
+            open={open}
+            onClose={() => setOpen(false)}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+            <Box
+              sx={{
+                position: 'relative',
+                maxWidth: '90vw',
+                maxHeight: '90vh',
+              }}>
+              <IconButton
+                onClick={() => setOpen(false)}
+                sx={{
+                  position: 'absolute',
+                  right: -40,
+                  top: -40,
+                  color: 'white',
+                }}>
+                <CloseIcon />
+              </IconButton>
+              <CardMedia
+                component='img'
+                image={`http://localhost:5000/message/${message.type}/${message.text}`}
+                alt='Shared image'
+                sx={{
+                  maxHeight: '90vh',
+                  maxWidth: '90vw',
+                  objectFit: 'contain',
+                }}
+              />
+            </Box>
+          </Modal>
+        )}
       </Box>
     </Box>
   );
@@ -453,6 +511,7 @@ const ChatPage = () => {
     message: '',
     channel: '',
   });
+  const [fileType, setFileType] = useState('message');
 
   useEffect(() => {
     getMeApi()
@@ -542,7 +601,7 @@ const ChatPage = () => {
 
     const messageData = {
       text: text,
-      type: 'text',
+      type: fileType,
     };
 
     if (selectedChannel) {
@@ -602,6 +661,21 @@ const ChatPage = () => {
     }
   };
 
+  const handleMediaUpload = (file, type) => {
+    console.log({ file, type });
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+    uploadFileApi(formData)
+      .then((res) => {
+        console.log(res);
+        setFileType(res.data.fileType);
+        setText(res.data.fileName);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  };
   return (
     <Box sx={{ display: 'flex', height: 'calc(100vh - 64px)' }}>
       <Sidebar
@@ -701,12 +775,11 @@ const ChatPage = () => {
               sx={{ mx: 1 }}
               disabled={!selectedChannel && !selectedMember}
             />
-            <IconButton size='small'>
-              <AttachFileIcon />
-            </IconButton>
-            <IconButton size='small'>
-              <ImageIcon />
-            </IconButton>
+            <MediaUpload
+              onUpload={(file, type) => handleMediaUpload(file, type)}
+              disabled={!selectedChannel && !selectedMember}
+            />
+
             <IconButton size='small'>
               <EmojiIcon />
             </IconButton>

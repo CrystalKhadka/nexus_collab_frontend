@@ -107,7 +107,7 @@ const DashboardPage = () => {
 
       const response = await createProjectApi(projectData);
 
-      if (response.status === 200) {
+      if (response.status === 201) {
         showSnackbar('Project created successfully');
         setIsCreateModalOpen(false);
         // Refresh projects list

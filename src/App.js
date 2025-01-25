@@ -15,6 +15,7 @@ import { SocketProvider } from './components/socketContext/SocketContext';
 import AcceptInvitePage from './pages/AcceptInvite/AcceptInvite';
 import CalendarPage from './pages/CalendarPage/CalendarPage';
 import ChatPage from './pages/ChatPage/ChatPage';
+import HelpAndDocumentation from './pages/HelpAndDocumentation/HelpAndDocumentation';
 import DashboardPage from './pages/Homepage/DashboardPage';
 import InvitationPage from './pages/Invitation/InvitationPage';
 import LandingPage from './pages/LandingPage/LandingPage';
@@ -107,6 +108,14 @@ function App() {
                 element={
                   <PublicRoute>
                     <LandingPage />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path='/help'
+                element={
+                  <PublicRoute>
+                    <HelpAndDocumentation />
                   </PublicRoute>
                 }
               />

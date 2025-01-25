@@ -1,5 +1,4 @@
 import {
-  AttachFile,
   Image as Camera,
   CheckCircle as Complete,
   Event as DateIcon,
@@ -44,6 +43,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import React, { useEffect, useState } from 'react';
+import { getMeApi } from '../apis/Api';
 import AssignUserModal from './projectBoard/AssignUserModal';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
@@ -239,6 +239,7 @@ const TaskDetailsDialog = ({
   handlePriorityChange,
   handleCoverChange,
   handleRequirementChange,
+  handleJoinOrLeaveTask,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -287,6 +288,8 @@ const TaskDetailsDialog = ({
     { label: 'High', color: '#EF4444' },
   ];
 
+  const [isJoined, setIsJoined] = useState(false);
+
   useEffect(() => {
     if (!selectedTask) return;
     setTask(selectedTask);
@@ -306,6 +309,21 @@ const TaskDetailsDialog = ({
       }
     }
   }, [selectedTask, handleStatusChange]);
+
+  useEffect(() => {
+    getMeApi()
+      .then((response) => {
+        if (response.status === 200) {
+          const me = response.data.user;
+          setIsJoined(
+            selectedTask.members.some((member) => member._id === me._id)
+          );
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  }, [selectedTask]);
 
   const handleComplete = (event) => {
     setCompleted(event.target.checked);
@@ -485,7 +503,7 @@ const TaskDetailsDialog = ({
       name: 'Requirements',
       onClick: () => setRequirementsDialogOpen(true),
     },
-    { icon: <AttachFile />, name: 'Attachment' },
+
     {
       icon: <DateIcon />,
       name: 'Dates',
@@ -498,7 +516,15 @@ const TaskDetailsDialog = ({
         }
       },
     },
-    { icon: <Leave />, name: 'Leave' },
+
+    {
+      // Join or leave
+      icon: <Leave />,
+      name: isJoined ? 'Leave' : 'Join',
+      onClick: () => {
+        handleJoinOrLeaveTask(selectedTask._id);
+      },
+    },
     {
       icon: <Trash />,
       name: 'Delete',

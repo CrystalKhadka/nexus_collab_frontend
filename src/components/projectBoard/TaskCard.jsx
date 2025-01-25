@@ -14,14 +14,6 @@ import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import React from 'react';
 
-const availableLabels = [
-  { id: 1, color: '#ef4444', name: 'Urgent' },
-  { id: 2, color: '#eab308', name: 'In Review' },
-  { id: 3, color: '#22c55e', name: 'Approved' },
-  { id: 4, color: '#3b82f6', name: 'Feature' },
-  { id: 5, color: '#a855f7', name: 'Bug' },
-];
-
 const TaskCard = ({ task, index, listId, onClick, onDelete }) => {
   const {
     attributes,
@@ -159,11 +151,7 @@ const TaskCard = ({ task, index, listId, onClick, onDelete }) => {
                       key={member._id}
                       src={`http://localhost:5000/profilePic/${member.image}`}
                       alt={member.name}
-                      title={
-                        member.firstName.slice(0, 1) +
-                        '' +
-                        member.lastName.slice(0, 1)
-                      }
+                      title={member.firstName + ' ' + member.lastName}
                     />
                   ))}
                 </AvatarGroup>

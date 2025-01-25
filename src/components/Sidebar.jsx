@@ -83,7 +83,7 @@ const additionalLinks = [
 
 // Sidebar Component
 const Sidebar = () => {
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
   const [currentProject, setCurrentProject] = useState(null);
 
   const params = useParams();

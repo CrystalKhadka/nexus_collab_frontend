@@ -22,7 +22,11 @@ import {
 } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getProjectByIdApi, updateProjectApi } from '../../apis/Api';
+import {
+  deleteProjectApi,
+  getProjectByIdApi,
+  updateProjectApi,
+} from '../../apis/Api';
 
 const SettingsPage = () => {
   const theme = useTheme();
@@ -326,7 +330,10 @@ const SettingsPage = () => {
           </Button>
           <Button
             onClick={() => {
-              setShowDeleteModal(false);
+              deleteProjectApi(id).then(() => {
+                setShowDeleteModal(false);
+                window.location.href = '/';
+              });
             }}
             color='error'
             variant='contained'>
