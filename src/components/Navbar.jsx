@@ -118,15 +118,7 @@ const Navbar = () => {
       .catch((error) => {
         console.log(error);
       });
-
-    socket.on('notificationMessage', (data) => {
-      console.log(data);
-    });
-
-    return () => {
-      socket.off('notificationMessage');
-    };
-  }, [socket]);
+  }, []);
 
   return (
     <AppBar

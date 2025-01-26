@@ -142,8 +142,8 @@ const DashboardPage = () => {
 
   return (
     <Box className='min-h-screen bg-gray-900'>
-      <Box className='bg-gray-800/50 p-8'>
-        <Container>
+      <Box className='bg-gray-800/50 p-8 min-h-screen'>
+        <Container sx={{ maxWidth: '100%', padding: 0, height: '100%' }}>
           {/* My Projects Section */}
           <Box className='mb-12'>
             <Box className='flex justify-between items-center mb-6'>

@@ -30,14 +30,7 @@ export const url = baseurl;
 
 // User Apis
 
-export const registerUserApi = async (data) => {
-  try {
-    const response = await Api.post('/user/register', data);
-    return response;
-  } catch (error) {
-    return error.response;
-  }
-};
+export const registerUserApi = async (data) => Api.post('/user/register', data);
 
 export const sendVerificationEmailApi = (data) =>
   Api.post('/user/send_verification_email', data);
@@ -52,6 +45,9 @@ export const searchUserApi = (search) =>
 // get me api
 export const getMeApi = () => Api.get('/user/me', jsonConfig);
 
+// delete user
+export const deleteUserApi = () => Api.delete('/user/delete', jsonConfig);
+
 // Project Apis
 // Create Project
 export const createProjectApi = (data) =>
@@ -62,6 +58,22 @@ export const uploadProjectImageApi = (data) =>
 
 export const getProjectByIdApi = (id) =>
   Api.get(`/project/get/${id}`, jsonConfig);
+
+// leave_project
+export const leaveProjectApi = (id) =>
+  Api.put('/project/leave/' + id, {}, jsonConfig);
+
+// remove_member
+export const removeMemberApi = (id, data) =>
+  Api.put('/project/remove_member/' + id, data, jsonConfig);
+
+// accept_request
+export const acceptRequestApi = (id, data) =>
+  Api.put('/project/accept_request/' + id, data, jsonConfig);
+
+// reject_request
+export const rejectRequestApi = (id, data) =>
+  Api.put('/project/reject_request/' + id, data, jsonConfig);
 
 // update project
 export const updateProjectApi = (id, data) =>

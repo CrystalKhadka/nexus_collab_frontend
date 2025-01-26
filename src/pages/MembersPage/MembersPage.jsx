@@ -32,9 +32,14 @@ import {
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
+  acceptRequestApi,
   fetchRequestedMembersApi,
+  getMeApi,
   getMembersRoleAndTaskApi,
   getProjectByIdApi,
+  leaveProjectApi,
+  rejectRequestApi,
+  removeMemberApi,
 } from '../../apis/Api';
 import InviteMembersModal from '../../components/InviteUserModal';
 
@@ -48,6 +53,8 @@ const MembersPage = () => {
   const [currentProject, setCurrentProject] = useState(null);
   const { id: projectId } = useParams();
   const [isInviteModalVisible, setIsInviteModalVisible] = useState(false);
+  const [changes, setChanges] = useState(false);
+  const [user, setUser] = useState({});
 
   useEffect(() => {
     const fetchProjectData = async () => {
@@ -77,12 +84,54 @@ const MembersPage = () => {
         console.error('Error fetching members:', error);
       }
     };
+
+    const fetchUser = async () => {
+      try {
+        const response = await getMeApi();
+        if (response.status === 200) {
+          setUser(response.data.user);
+        } else {
+          throw new Error('Failed to fetch user');
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      }
+    };
     if (projectId) {
       fetchProjectData();
       fetchMembers();
       fetchRequest();
+      fetchUser();
     }
-  }, [projectId]);
+  }, [projectId, changes]);
+
+  const handleAccept = async (id) => {
+    acceptRequestApi(projectId, {
+      id: id,
+    })
+      .then((res) => {
+        if (res.status === 200) {
+          setChanges(!changes);
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  };
+
+  const handleReject = async (id) => {
+    rejectRequestApi(projectId, {
+      id: id,
+    })
+      .then((res) => {
+        if (res.status === 200) {
+          setChanges(!changes);
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  };
 
   const searchUser = (e) => {
     const searchValue = e.target.value.toLowerCase();
@@ -103,10 +152,32 @@ const MembersPage = () => {
     return currentProject?.admin.includes(id);
   };
 
+  const removeMember = (id) => {
+    removeMemberApi(projectId, {
+      userId: id,
+    })
+      .then((res) => {
+        if (res.status === 200) {
+          setChanges(!changes);
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  };
+
+  const isMe = (id) => {
+    return user._id === id;
+  };
+
   const ActionButton = ({ text, variant, onClick, tooltipText }) => {
     const getButtonProps = () => {
       switch (variant) {
         case 'leave':
+          return {
+            color: 'error',
+            startIcon: <DeleteIcon />,
+          };
         case 'reject':
           return {
             color: 'error',
@@ -127,6 +198,7 @@ const MembersPage = () => {
             color: 'warning',
             startIcon: <PauseIcon />,
           };
+
         default:
           return {
             color: 'inherit',
@@ -224,10 +296,31 @@ const MembersPage = () => {
                 sx={{ borderRadius: 1 }}
               />
               <ActionButton
-                text='Remove'
-                variant={isAdmin(member._id) ? '' : 'remove'}
+                text={
+                  isMe(member._id)
+                    ? 'Leave'
+                    : isAdmin(member._id)
+                    ? 'Admin'
+                    : 'Remove'
+                }
+                variant={
+                  isMe(member._id)
+                    ? 'leave'
+                    : isAdmin(member._id)
+                    ? ''
+                    : 'remove'
+                }
                 tooltipText={
-                  isAdmin(member._id) ? "Can't remove admin" : 'Remove member'
+                  isMe(member._id)
+                    ? 'Leave project'
+                    : isAdmin(member._id)
+                    ? "Can't remove admin"
+                    : 'Remove member'
+                }
+                onClick={
+                  isMe(member._id)
+                    ? () => leaveProjectApi(projectId)
+                    : () => removeMember(member._id)
                 }
               />
             </Stack>
@@ -466,6 +559,9 @@ const MembersPage = () => {
                           <ActionButton
                             text='Accept'
                             variant='accept'
+                            onClick={() => {
+                              handleAccept(request._id);
+                            }}
                           />
                           <ActionButton
                             text='Hold'
@@ -474,6 +570,9 @@ const MembersPage = () => {
                           <ActionButton
                             text='Reject'
                             variant='reject'
+                            onClick={() => {
+                              handleReject(request._id);
+                            }}
                           />
                         </Stack>
                       </Grid>

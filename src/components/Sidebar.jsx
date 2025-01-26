@@ -89,9 +89,16 @@ const Sidebar = () => {
   const params = useParams();
 
   useEffect(() => {
-    getProjectByIdApi(params.id).then((response) => {
-      setCurrentProject(response.data.data);
-    });
+    getProjectByIdApi(params.id)
+      .then((response) => {
+        setCurrentProject(response.data.data);
+      })
+      .catch((error) => {
+        console.error(error);
+        if (error.response.status === 403) {
+          window.location.href = '/dashboard';
+        }
+      });
   }, [params]);
 
   return (

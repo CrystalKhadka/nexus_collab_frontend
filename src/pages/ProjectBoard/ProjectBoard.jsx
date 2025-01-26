@@ -354,7 +354,7 @@ const ProjectBoard = () => {
         sx={{
           flex: 1,
           p: 3,
-          bgcolor: 'background.paper',
+          bgcolor: 'background.default',
           borderRadius: 1,
           mt: 2,
           mb: 2,

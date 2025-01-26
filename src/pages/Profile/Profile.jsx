@@ -16,7 +16,12 @@ import {
 } from '@mui/material';
 import { Camera, Mail, MapPin, Phone, User } from 'lucide-react';
 import React, { memo, useEffect, useRef, useState } from 'react';
-import { getMeApi, updateUserApi, uploadProfilePicApi } from '../../apis/Api';
+import {
+  deleteUserApi,
+  getMeApi,
+  updateUserApi,
+  uploadProfilePicApi,
+} from '../../apis/Api';
 
 // Memoized InputField component to prevent unnecessary re-renders
 const InputField = memo(
@@ -367,7 +372,14 @@ const ProfilePage = () => {
                         'Are you sure you want to delete your account? This action cannot be undone.'
                       )
                     ) {
-                      handleSnackbar('Account deletion requested', 'warning');
+                      deleteUserApi()
+                        .then(() => {
+                          window.location.href = '/';
+                        })
+                        .catch((err) => {
+                          console.log(err);
+                          handleSnackbar('Failed to delete account', 'error');
+                        });
                     }
                   }}
                   sx={{

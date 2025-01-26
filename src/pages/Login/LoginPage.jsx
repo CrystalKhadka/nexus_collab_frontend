@@ -1,14 +1,15 @@
 import { Lock, Mail, Visibility, VisibilityOff } from '@mui/icons-material';
 import {
+  Alert,
   AppBar,
   Box,
   Button,
   CircularProgress,
   Container,
-  Divider,
   Grid,
   IconButton,
   InputAdornment,
+  Snackbar,
   TextField,
   Toolbar,
   Typography,
@@ -87,30 +88,61 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [alert, setAlert] = useState({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
   const { register, handleSubmit, watch } = useForm();
+
+  const handleCloseAlert = () => {
+    setAlert({ ...alert, open: false });
+  };
 
   const onSubmit = async (values) => {
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
       const data = {
         email: values.email,
         password: values.password,
       };
 
       const response = await loginUserApi(data);
-      if (response.data.success) {
-        localStorage.setItem('token', response.data.token);
-        window.location.href = '/dashboard';
-      }
-    } catch (error) {
-      if (error.response?.status === 400 && !error.response.data.isVerified) {
+      if (response.data.isVerified === false) {
         try {
           await sendVerificationEmailApi({ email: values.email });
           setShowVerification(true);
         } catch (verifyError) {
-          console.error('Verification email error:', verifyError);
+          setAlert({
+            open: true,
+            message: 'Failed to send verification email',
+            severity: 'error',
+          });
         }
+      } else if (response.data.success) {
+        setAlert({
+          open: true,
+          message: 'Login successful! Redirecting...',
+          severity: 'success',
+        });
+        localStorage.setItem('token', response.data.token);
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1500);
+      }
+    } catch (error) {
+      if (error.response) {
+        setAlert({
+          open: true,
+          message: error.response.data.message,
+          severity: 'error',
+        });
+      } else {
+        setAlert({
+          open: true,
+          message: 'Login failed',
+          severity: 'error',
+        });
       }
     } finally {
       setLoading(false);
@@ -125,16 +157,40 @@ const LoginPage = () => {
       });
 
       if (response.status === 200) {
+        setAlert({
+          open: true,
+          message: 'Email verified successfully! Redirecting...',
+          severity: 'success',
+        });
         localStorage.setItem('token', response.data.token);
-        window.location.href = '/dashboard';
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1500);
       }
     } catch (error) {
-      console.error('Verification failed:', error);
+      setAlert({
+        open: true,
+        message: 'Invalid verification code',
+        severity: 'error',
+      });
     }
   };
 
   return (
     <Box>
+      <Snackbar
+        open={alert.open}
+        autoHideDuration={6000}
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert
+          onClose={handleCloseAlert}
+          severity={alert.severity}
+          variant='filled'
+          sx={{ width: '100%' }}>
+          {alert.message}
+        </Alert>
+      </Snackbar>
       <StyledAppBar position='sticky'>
         <Toolbar>
           <Container
@@ -264,46 +320,6 @@ const LoginPage = () => {
                     disabled={loading}
                     sx={{ height: 48, mb: 3, fontSize: '1rem' }}>
                     {loading ? <CircularProgress size={24} /> : 'Sign in'}
-                  </Button>
-
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                      mb: 3,
-                    }}>
-                    <Divider
-                      sx={{ flex: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }}
-                    />
-                    <Typography color='text.secondary'>or</Typography>
-                    <Divider
-                      sx={{ flex: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }}
-                    />
-                  </Box>
-
-                  <Button
-                    fullWidth
-                    variant='outlined'
-                    color='inherit'
-                    sx={{
-                      height: 48,
-                      mb: 3,
-                      fontSize: '1rem',
-                      borderColor: 'rgba(255, 255, 255, 0.1)',
-                      '&:hover': {
-                        borderColor: 'rgba(255, 255, 255, 0.2)',
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                      },
-                    }}
-                    startIcon={
-                      <img
-                        src='https://cdn.cdnlogo.com/logos/g/35/google-icon.svg'
-                        alt='Google'
-                        style={{ width: 20, height: 20 }}
-                      />
-                    }>
-                    Continue with Google
                   </Button>
 
                   <Typography

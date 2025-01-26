@@ -1,7 +1,7 @@
 import { Box } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useParams } from 'react-router-dom';
-import { getMeApi } from '../../apis/Api';
+import { getMeApi, getProjectByIdApi } from '../../apis/Api';
 import { useSocket } from '../../components/socketContext/SocketContext';
 import initSocket from '../../utils/initSocket';
 import Navbar from '../Navbar';
@@ -16,7 +16,7 @@ const MainLayout = ({ children }) => {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
       <Box
-        component="main"
+        component='main'
         sx={{
           flexGrow: 1,
           pt: `${NAVBAR_HEIGHT}px`,
@@ -30,13 +30,36 @@ const MainLayout = ({ children }) => {
 };
 
 const ProjectLayout = ({ children }) => {
+  const { id } = useParams();
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    setLoading(true);
+    getProjectByIdApi(id)
+      .then((response) => {})
+      .catch((error) => {
+        console.error(error);
+        if (error.response.status === 403) {
+          window.location.href = '/dashboard';
+        }
+        if (error.response.status === 404) {
+          window.location.href = '/dashboard';
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) {
+    return null;
+  }
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
       <Box sx={{ display: 'flex', flexGrow: 1, pt: `${NAVBAR_HEIGHT}px` }}>
         <Sidebar />
         <Box
-          component="main"
+          component='main'
           sx={{
             flexGrow: 1,
             minHeight: `calc(100vh - ${NAVBAR_HEIGHT}px)`,
@@ -44,7 +67,7 @@ const ProjectLayout = ({ children }) => {
             width: { sm: `calc(100% - ${SIDEBAR_WIDTH}px)` },
             scrollBehavior: 'smooth',
           }}
-          className="overflow-y-auto">
+          className='overflow-y-auto'>
           {children}
         </Box>
       </Box>
@@ -56,15 +79,15 @@ const ProjectLayout = ({ children }) => {
 const checkAuthentication = async () => {
   try {
     const response = await getMeApi();
-    return { 
+    return {
       isAuthenticated: response.status === 200,
-      user: response.data.user 
+      user: response.data.user,
     };
   } catch (error) {
     console.error('Authentication error:', error);
-    return { 
+    return {
       isAuthenticated: false,
-      user: null 
+      user: null,
     };
   }
 };
@@ -82,7 +105,7 @@ const ProtectedRoute = ({ children }) => {
     const initializeAuth = async () => {
       try {
         const { isAuthenticated: isAuth, user } = await checkAuthentication();
-        
+
         if (!isMounted) return;
 
         setAuthenticated(isAuth);
@@ -91,7 +114,7 @@ const ProtectedRoute = ({ children }) => {
         // Initialize socket only if authenticated and socket doesn't exist
         if (isAuth && user && !socket) {
           const socketInstance = initSocket(user);
-          
+
           socketInstance.on('connect', () => {
             console.log('WebSocket connected:', socketInstance.id);
           });
@@ -129,7 +152,13 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return (
+      <Navigate
+        to='/login'
+        state={{ from: location }}
+        replace
+      />
+    );
   }
 
   return params.id ? (
@@ -150,7 +179,7 @@ const PublicRoute = ({ children }) => {
     const initializeAuth = async () => {
       try {
         const { isAuthenticated: isAuth } = await checkAuthentication();
-        
+
         if (isMounted) {
           setAuthenticated(isAuth);
           setIsLoading(false);
@@ -175,8 +204,16 @@ const PublicRoute = ({ children }) => {
     return null;
   }
 
-  if (isAuthenticated && ['/login', '/register', '/'].includes(location.pathname)) {
-    return <Navigate to="/dashboard" replace />;
+  if (
+    isAuthenticated &&
+    ['/login', '/register', '/'].includes(location.pathname)
+  ) {
+    return (
+      <Navigate
+        to='/dashboard'
+        replace
+      />
+    );
   }
 
   return children;

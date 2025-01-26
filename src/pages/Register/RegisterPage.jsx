@@ -104,7 +104,7 @@ const RegisterPage = () => {
     });
   };
 
-  const onSubmit = async (values) => {
+  const onSubmit = (values) => {
     setLoading(true);
 
     const data = {
@@ -113,17 +113,19 @@ const RegisterPage = () => {
       password: values.password,
     };
 
+    console.log(data);
+
     registerUserApi(data)
       .then((response) => {
         if (response.status === 200) {
-          showMessage('Registration successful', 'success');
           sendVerificationEmailApi({ email: values.email })
             .then(() => {
               setShowVerification(true);
             })
             .catch((error) => {
-              console.error('Registration error:', error);
-              showMessage('Registration failed', 'error');
+              if (error.response) {
+                showMessage(error.response.data.message, 'error');
+              }
             })
             .finally(() => {
               setLoading(false);
@@ -131,8 +133,9 @@ const RegisterPage = () => {
         }
       })
       .catch((error) => {
-        console.error('Registration error:', error);
-        showMessage('Registration failed', 'error');
+        if (error.response) {
+          showMessage(error.response.data.message, 'error');
+        }
       })
       .finally(() => {
         setLoading(false);
@@ -162,6 +165,26 @@ const RegisterPage = () => {
 
   return (
     <Box>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{
+          zIndex: 9999,
+          '& .MuiAlert-root': {
+            width: '100%',
+            minWidth: '300px',
+          },
+        }}>
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant='filled'
+          elevation={6}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
       <StyledAppBar position='sticky'>
         <Toolbar>
           <Container
@@ -345,21 +368,6 @@ const RegisterPage = () => {
             </Grid>
           </Grid>
         </Container>
-        {/* Snackbar */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={6000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-          sx={{ zIndex: 9999 }}>
-          <Alert
-            onClose={handleCloseSnackbar}
-            severity={snackbar.severity || 'info'}
-            variant='filled'
-            sx={{ width: '100%' }}>
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
       </ContentBox>
       <VerificationModal
         open={showVerification}
