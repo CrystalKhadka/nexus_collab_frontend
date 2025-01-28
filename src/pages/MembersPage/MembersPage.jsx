@@ -16,6 +16,11 @@ import {
   CardContent,
   Chip,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   Fade,
   Grid,
@@ -55,6 +60,97 @@ const MembersPage = () => {
   const [isInviteModalVisible, setIsInviteModalVisible] = useState(false);
   const [changes, setChanges] = useState(false);
   const [user, setUser] = useState({});
+  const [dialogState, setDialogState] = useState({
+    isOpen: false,
+    type: null, // 'remove', 'leave', 'accept', 'reject'
+    memberId: null,
+    memberName: '',
+  });
+
+  const closeDialog = () => {
+    setDialogState({
+      isOpen: false,
+      type: null,
+      memberId: null,
+      memberName: '',
+    });
+  };
+
+  const handleDialogConfirm = async () => {
+    const { type, memberId } = dialogState;
+
+    try {
+      switch (type) {
+        case 'remove':
+          await removeMemberApi(projectId, { userId: memberId });
+          break;
+        case 'leave':
+          await leaveProjectApi(projectId);
+          // go to dashboard
+          window.location.href = '/dashboard';
+          break;
+        case 'accept':
+          await acceptRequestApi(projectId, { id: memberId });
+          break;
+        case 'reject':
+          await rejectRequestApi(projectId, { id: memberId });
+          break;
+        default:
+          break;
+      }
+      setChanges(!changes);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+    closeDialog();
+  };
+
+  const getDialogContent = () => {
+    const { type, memberName } = dialogState;
+
+    switch (type) {
+      case 'remove':
+        return {
+          title: 'Remove Member',
+          description: `Are you sure you want to remove ${memberName} from the project?`,
+          confirmText: 'Remove',
+          confirmColor: 'error',
+          cancelText: 'Cancel',
+        };
+      case 'leave':
+        return {
+          title: 'Leave Project',
+          description: 'Are you sure you want to leave this project?',
+          confirmText: 'Leave',
+          confirmColor: 'error',
+          cancelText: 'Stay',
+        };
+      case 'accept':
+        return {
+          title: 'Accept Request',
+          description: `Are you sure you want to accept ${memberName}'s join request?`,
+          confirmText: 'Accept',
+          confirmColor: 'success',
+          cancelText: 'Cancel',
+        };
+      case 'reject':
+        return {
+          title: 'Reject Request',
+          description: `Are you sure you want to reject ${memberName}'s join request?`,
+          confirmText: 'Reject',
+          confirmColor: 'error',
+          cancelText: 'Cancel',
+        };
+      default:
+        return {
+          title: '',
+          description: '',
+          confirmText: 'Confirm',
+          confirmColor: 'primary',
+          cancelText: 'Cancel',
+        };
+    }
+  };
 
   useEffect(() => {
     const fetchProjectData = async () => {
@@ -170,7 +266,25 @@ const MembersPage = () => {
     return user._id === id;
   };
 
-  const ActionButton = ({ text, variant, onClick, tooltipText }) => {
+  const ActionButton = ({ text, variant, onClick, tooltipText, member }) => {
+    const handleClick = () => {
+      if (
+        variant === 'leave' ||
+        variant === 'remove' ||
+        variant === 'accept' ||
+        variant === 'reject'
+      ) {
+        setDialogState({
+          isOpen: true,
+          type: variant,
+          memberId: member._id,
+          memberName: `${member.firstName} ${member.lastName}`,
+        });
+      } else {
+        onClick?.();
+      }
+    };
+
     const getButtonProps = () => {
       switch (variant) {
         case 'leave':
@@ -198,7 +312,6 @@ const MembersPage = () => {
             color: 'warning',
             startIcon: <PauseIcon />,
           };
-
         default:
           return {
             color: 'inherit',
@@ -220,7 +333,7 @@ const MembersPage = () => {
           },
         }}
         {...getButtonProps()}
-        onClick={onClick}>
+        onClick={handleClick}>
         {text}
       </Button>
     );
@@ -317,11 +430,7 @@ const MembersPage = () => {
                     ? "Can't remove admin"
                     : 'Remove member'
                 }
-                onClick={
-                  isMe(member._id)
-                    ? () => leaveProjectApi(projectId)
-                    : () => removeMember(member._id)
-                }
+                member={member}
               />
             </Stack>
           </Box>
@@ -332,6 +441,53 @@ const MembersPage = () => {
 
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 4 }}>
+      <Dialog
+        open={dialogState.isOpen}
+        onClose={closeDialog}
+        aria-labelledby='alert-dialog-title'
+        aria-describedby='alert-dialog-description'
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            width: '100%',
+            maxWidth: 400,
+          },
+        }}>
+        <DialogTitle id='alert-dialog-title'>
+          {getDialogContent().title}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id='alert-dialog-description'>
+            {getDialogContent().description}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5, pt: 1.5 }}>
+          <Button
+            onClick={closeDialog}
+            variant='outlined'
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+            }}>
+            {getDialogContent().cancelText}
+          </Button>
+          <Button
+            onClick={handleDialogConfirm}
+            variant='contained'
+            color={getDialogContent().confirmColor}
+            autoFocus
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              boxShadow: 'none',
+              '&:hover': {
+                boxShadow: theme.shadows[2],
+              },
+            }}>
+            {getDialogContent().confirmText}
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Container maxWidth='lg'>
         {/* Header */}
         <Paper
@@ -340,7 +496,7 @@ const MembersPage = () => {
             p: 3,
             mb: 4,
             borderRadius: 2,
-            background: theme.palette.background.paper,
+            background: 'background.default',
             border: `1px solid ${theme.palette.divider}`,
           }}>
           <Grid
@@ -562,6 +718,12 @@ const MembersPage = () => {
                             onClick={() => {
                               handleAccept(request._id);
                             }}
+                            member={request}
+                            tooltipText={
+                              request._id === user._id
+                                ? 'You cannot accept your own request'
+                                : ''
+                            }
                           />
                           <ActionButton
                             text='Hold'
@@ -573,6 +735,12 @@ const MembersPage = () => {
                             onClick={() => {
                               handleReject(request._id);
                             }}
+                            member={request}
+                            tooltipText={
+                              request._id === user._id
+                                ? 'You cannot reject your own request'
+                                : ''
+                            }
                           />
                         </Stack>
                       </Grid>
